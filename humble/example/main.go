@@ -1,48 +1,65 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gophergala/go_by_the_fireplace/humble"
 	"honnef.co/go/js/console"
 )
 
-type TodoView struct {
+type CurrentPageView struct {
 	humble.Identifier
 }
 
-func (t *TodoView) GetHTML(m humble.Model) string {
-	return "<p>Bringing Go to the frontend :) please no more Javascript :(</p>"
+type CurrentPage struct {
+	Name string
+	humble.Identifier
 }
 
-func (t *TodoView) OuterTag() string {
+func (t *CurrentPageView) GetHTML(m humble.Model) string {
+	cp := m.(*CurrentPage)
+	fmt.Println(cp)
+	return fmt.Sprintf("<p>Current page is %s</p>", cp.Name)
+}
+
+func (t *CurrentPageView) OuterTag() string {
 	return "div"
 }
 
 func main() {
 	console.Log("Starting...")
 
-	t := &TodoView{}
+	v := &CurrentPageView{}
+	homePage := &CurrentPage{Name: "Home"}
+	aboutPage := &CurrentPage{Name: "About"}
+	faqPage := &CurrentPage{Name: "FAQ"}
 
 	r := humble.NewRouter()
 	r.HandleFunc("/", func(params map[string]string) {
+		console.Log(v.Id())
 		console.Log("At home page")
+		if err := humble.Views.SetOnlyChild(v, homePage, "#current-page"); err != nil {
+			console.Error(err)
+		}
 	})
-	r.HandleFunc("/append", func(params map[string]string) {
-		console.Log(t.Id())
-		humble.Views.AppendChild(t, nil, "#current-page")
+	r.HandleFunc("/about", func(params map[string]string) {
+		console.Log(v.Id())
+		console.Log("At about page")
+		if err := humble.Views.SetOnlyChild(v, aboutPage, "#current-page"); err != nil {
+			console.Error(err)
+		}
 	})
-	r.HandleFunc("/about/{person_id}", func(params map[string]string) {
-		console.Log("At person with ID: ", params["person_id"])
+	r.HandleFunc("/faq", func(params map[string]string) {
+		console.Log(v.Id())
+		console.Log("At faq page")
+		if err := humble.Views.SetOnlyChild(v, faqPage, "#current-page"); err != nil {
+			console.Error(err)
+		}
 	})
-	r.HandleFunc("/replace", func(params map[string]string) {
-		console.Log(t.Id())
-		humble.Views.SetOnlyChild(t, nil, "#current-page")
-	})
-	r.HandleFunc("/removeLast", func(params map[string]string) {
-		console.Log(t.Id())
-		humble.Views.Remove(t)
-	})
-	r.HandleFunc("/buy/purchase/{item_id}/image/{image_size}/panoramic", func(params map[string]string) {
-		console.Log("Item ID:", params["item_id"], " Image_size", params["image_size"])
+	r.HandleFunc("/remove", func(params map[string]string) {
+		console.Log(v.Id())
+		if ok := humble.Views.Remove(v); !ok {
+			console.Error("Not Ok!")
+		}
 	})
 
 	r.Start()

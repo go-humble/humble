@@ -66,6 +66,9 @@ func (*viewsType) SetOnlyChild(view View, model Model, parentSelector string) er
 	if viewHTML == "" {
 		return nil
 	}
+
+	fmt.Println(viewHTML)
+
 	//Create our view DOM element
 	viewEl, err := createViewElement(viewHTML, view.OuterTag(), view.Id())
 	if err != nil {
@@ -83,6 +86,8 @@ func (*viewsType) Remove(view View) bool {
 	if found {
 		fmt.Printf("found view element %s\n", view.Id())
 		(*viewElRef).ParentElement().RemoveChild(*viewElRef)
+		delete(viewsIndex, view.Id())
+		return true
 	}
 	return false
 }
@@ -96,10 +101,12 @@ func createViewElement(innerHTML string, outerTag string, viewId string) (dom.El
 		return nil, err
 	}
 	//Create our element to append, with outer tag
-	el := document.CreateElement(outerTag)
+	var el dom.Element
 	//Create unique element ID for the view element and add it to global map of existent view elements viewsIndex
-	if _, found := viewsIndex[viewId]; found {
-		return nil, fmt.Errorf("Duplicate humble.View Id: %s", viewId)
+	if cachedEl, found := viewsIndex[viewId]; found {
+		el = (*cachedEl)
+	} else {
+		el = document.CreateElement(outerTag)
 	}
 	viewsIndex[viewId] = &el
 	el.SetInnerHTML(innerHTML)
