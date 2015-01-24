@@ -1,7 +1,6 @@
 package humble
 
 import (
-	"honnef.co/go/js/console"
 	"math/rand"
 	"strconv"
 	"time"
@@ -11,7 +10,7 @@ type Identifier struct {
 	id string
 }
 
-func (i Identifier) Id() string {
+func (i *Identifier) Id() string {
 	if i.id == "" {
 		i.id = generateRandomId()
 	}
