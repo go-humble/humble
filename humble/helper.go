@@ -1,7 +1,7 @@
 package humble
 
 import (
-	"github.com/dchest/uniuri"
+	"math/rand"
 	"strconv"
 	"time"
 )
@@ -23,6 +23,16 @@ func (i Identifier) Id() string {
 func generateRandomId() string {
 	timeInt := time.Now().Unix()
 	timeString := strconv.FormatInt(timeInt, 36)
-	randomString := uniuri.NewLen(16)
+	randomString := generateRandomAlphanum(16)
 	return randomString + timeString
+}
+
+func generateRandomAlphanum(size int) string {
+	var alphanum []byte = []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+	var slice []byte = make([]byte, size)
+	rand.Seed(time.Now().UTC().UnixNano())
+	for i := 0; i < size; i++ {
+		slice[i] = alphanum[rand.Intn(len(alphanum))]
+	}
+	return string(slice)
 }

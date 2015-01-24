@@ -13,6 +13,10 @@ func (t *TodoView) GetHTML(m humble.Model) string {
 	return "<p>Bringing Go to the frontend :) please no more Javascript :(</p>"
 }
 
+func (t *TodoView) OuterTag() string {
+	return "div"
+}
+
 func main() {
 	console.Log("Starting...")
 
@@ -24,7 +28,7 @@ func main() {
 	})
 	r.HandleFunc("/about", func(params map[string]string) {
 		console.Log("At about page")
-		humble.Views.Append(t, nil, "#current-page")
+		humble.Views.AppendChild(t, nil, "#current-page")
 	})
 	r.HandleFunc("/about/{person_id}", func(params map[string]string) {
 		console.Log("At person with ID: ", params["person_id"])
