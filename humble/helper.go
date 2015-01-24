@@ -1,6 +1,7 @@
 package humble
 
 import (
+	"honnef.co/go/js/console"
 	"math/rand"
 	"strconv"
 	"time"

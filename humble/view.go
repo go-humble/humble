@@ -52,7 +52,7 @@ func (*viewsType) AppendChild(view View, model Model, parentSelector string) err
 	return nil
 }
 
-// OnlyChild clears the current contents of the parent DOM element and sets the view as its only child.
+// SetOnlyChild clears the current contents of the parent DOM element and sets the view as its only child.
 // It takes a View interface, a Model provided to the view and a parent DOM selector.
 // Parent selector works identically to JavaScript's document.querySelector(selector) call.
 func (*viewsType) SetOnlyChild(view View, model Model, parentSelector string) error {
@@ -74,8 +74,17 @@ func (*viewsType) SetOnlyChild(view View, model Model, parentSelector string) er
 	//Append as child to selected parent DOM element
 	parent.SetInnerHTML("")
 	parent.AppendChild(viewEl)
-
 	return nil
+}
+
+// Remove removes a view element from the DOM, returning true if successful, false otherwise
+func (*viewsType) Remove(view View) bool {
+	viewElRef, found := viewsIndex[view.Id()]
+	if found {
+		fmt.Printf("found view element %s\n", view.Id())
+		(*viewElRef).ParentElement().RemoveChild(*viewElRef)
+	}
+	return false
 }
 
 // createChildElement creates a DOM element from HTML and a outer container tag.
@@ -88,7 +97,7 @@ func createViewElement(innerHTML string, outerTag string, viewId string) (dom.El
 	}
 	//Create our element to append, with outer tag
 	el := document.CreateElement(outerTag)
-	//Create unique element ID for the view element
+	//Create unique element ID for the view element and add it to global map of existent view elements viewsIndex
 	if _, found := viewsIndex[viewId]; found {
 		return nil, fmt.Errorf("Duplicate humble.View Id: %s", viewId)
 	}

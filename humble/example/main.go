@@ -26,17 +26,20 @@ func main() {
 	r.HandleFunc("/", func(params map[string]string) {
 		console.Log("At home page")
 	})
-	r.HandleFunc("/about", func(params map[string]string) {
-		console.Log("At about page")
+	r.HandleFunc("/append", func(params map[string]string) {
+		console.Log(t.Id())
 		humble.Views.AppendChild(t, nil, "#current-page")
 	})
 	r.HandleFunc("/about/{person_id}", func(params map[string]string) {
 		console.Log("At person with ID: ", params["person_id"])
 	})
-	r.HandleFunc("/faq", func(params map[string]string) {
-		console.Log("At FAQ page")
-		console.Log("At about page")
+	r.HandleFunc("/replace", func(params map[string]string) {
+		console.Log(t.Id())
 		humble.Views.SetOnlyChild(t, nil, "#current-page")
+	})
+	r.HandleFunc("/removeLast", func(params map[string]string) {
+		console.Log(t.Id())
+		humble.Views.Remove(t)
 	})
 	r.HandleFunc("/buy/purchase/{item_id}/image/{image_size}/panoramic", func(params map[string]string) {
 		console.Log("Item ID:", params["item_id"], " Image_size", params["image_size"])
