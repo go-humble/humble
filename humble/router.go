@@ -1,7 +1,6 @@
 package humble
 
 import (
-	"fmt"
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/console"
 	"regexp"
@@ -26,9 +25,9 @@ func NewRouter() *Router {
 }
 
 type route struct {
-	regex      *regexp.Regexp
-	paramNames []string
-	handler    Handler
+	regex      *regexp.Regexp //Regex pattern that matches route
+	paramNames []string       //Ordered list of query parameters expected by route handler
+	handler    Handler        //Handler called when route is matched
 }
 
 // HandleFunc will cause the router to call f whenever the
@@ -44,12 +43,12 @@ func newRoute(path string, handler Handler) *route {
 		handler: handler,
 	}
 	strs := strings.Split(path, "/")
-	removeEmptyStrings(strs)
+	strs = removeEmptyStrings(strs)
 	pattern := `^`
 	for _, str := range strs {
-		if !(str[0] == '{' && str[len(str)-1] == '}') {
+		if str[0] == '{' && str[len(str)-1] == '}' {
 			pattern += `/`
-			pattern += `([\w-+]*)`
+			pattern += `([\w+-]*)`
 			route.paramNames = append(route.paramNames, str[1:(len(str)-1)])
 		} else {
 			pattern += `/`
@@ -70,6 +69,7 @@ func (r *Router) Start() {
 	r.watchHash()
 }
 
+// setInitialHash will set hash to / when none is given
 func (r *Router) setInitialHash() {
 	if hash := getHash(); hash == "" {
 		setHash("/")
@@ -78,39 +78,17 @@ func (r *Router) setInitialHash() {
 	}
 }
 
+// hashChanged is called whenever DOM onhashchange event is fired
 func (r *Router) hashChanged(hash string) {
-	fmt.Printf("hashChanged(%s)\n", hash)
-
 	// path is everything after the '#'
 	path := strings.SplitN(hash, "#", 2)[1]
 	strs := strings.Split(path, "/")
-	removeEmptyStrings(strs)
-	fmt.Println("Parsed hash correctly!")
-	// canditateRoutes := []route{}
-	// copy(canditateRoutes, r.routes)
+	strs = removeEmptyStrings(strs)
 
-	// // Eliminate all the routes which want a different
-	// // number of tokens
-	// for j, route := range canditateRoutes {
-	// 	if len(route.tokens) != len(strs) {
-	// 		canditateRoutes = append(canditateRoutes[:j], canditateRoutes[j+1:]...)
-	// 	}
-	// }
-
-	// // Eliminate other routes one by one
-	// score := []int{}
-	// for i, str := range strs {
-	// 	for j, route := range canditateRoutes {
-	// 		if route.tokens[i].kind == literalToken {
-	// 			if str != route.tokens[i].name {
-	// 				// If a route expected a literal token and the str
-	// 				// we got didn't match, eliminate that route from
-	// 				// the list of candidates
-	// 				canditateRoutes = append(canditateRoutes[:j], canditateRoutes[j+1:]...)
-	// 			}
-	// 		}
-	// 	}
-	// }
+	// Compare given path against regex patterns of routes. Preference given to routes with most literal (non-query) matches.
+	// Route 1: /todos/work
+	// Route 2: /todos/{category}
+	// Path /todos/work will match Route #1
 	leastParams := -1
 	var bestRoute *route
 	var bestMatches []string
@@ -125,6 +103,7 @@ func (r *Router) hashChanged(hash string) {
 		}
 	}
 
+	//If no routes match, we throw console error and no handlers are called
 	if bestRoute == nil {
 		console.Error("Could not find route to match: " + path)
 		return
@@ -136,36 +115,26 @@ func (r *Router) hashChanged(hash string) {
 		params[bestRoute.paramNames[i]] = match
 	}
 	bestRoute.handler(params)
-
-	// If there is more than one candidate, throw an error
-	// otherwise match the route with the one we left
-
-	// todos/create
-	// todos/{id}
-
-	// todos/create
-
-	// if _, found := r.routes[path]; found {
-	// 	console.Log("Found handler for " + path)
-	// 	// TODO: parse url params and call handler func
-	// }
 }
 
 // removeEmptyStrings removes any empty strings from a
-func removeEmptyStrings(a []string) {
+func removeEmptyStrings(a []string) []string {
 	for i, s := range a {
 		if s == "" {
 			a = append(a[:i], a[i+1:]...)
 		}
 	}
+	return a
 }
 
+// watchHash watches DOM onhashchange and calls route.hashChanged
 func (r *Router) watchHash() {
 	js.Global.Set("onhashchange", func() {
 		r.hashChanged(getHash())
 	})
 }
 
+// legacyWatchHash sets a ticker to check for hash changes every 50ms in browsers where onhashchange is not supported
 func (r *Router) legacyWatchHash() {
 	t := time.NewTicker(50 * time.Millisecond)
 	go func() {
@@ -181,10 +150,12 @@ func (r *Router) legacyWatchHash() {
 	}()
 }
 
+// getHash gets DOM window.location.hash
 func getHash() string {
 	return js.Global.Get("location").Get("hash").String()
 }
 
-func setHash(string) {
-	js.Global.Get("location").Set("hash", "/")
+// setHash sets DOM window.location.hash to given hash
+func setHash(hash string) {
+	js.Global.Get("location").Set("hash", hash)
 }
