@@ -35,6 +35,8 @@ func main() {
 	})
 	r.HandleFunc("/faq", func(params map[string]string) {
 		console.Log("At FAQ page")
+		console.Log("At about page")
+		humble.Views.SetOnlyChild(t, nil, "#current-page")
 	})
 	r.HandleFunc("/buy/purchase/{item_id}/image/{image_size}/panoramic", func(params map[string]string) {
 		console.Log("Item ID:", params["item_id"], " Image_size", params["image_size"])

@@ -28,11 +28,6 @@ var viewsIndex = map[string]*dom.Element{}
 var Views = viewsType{}
 var document = dom.GetWindow().Document()
 
-// doSomething does something
-func (v *View) doSomething() {
-
-}
-
 // AppendChild appends a view as a child to a parent DOM element. It takes a View interface, a Model provided to the view
 // and a parent DOM selector. Parent selector works identically to JavaScript's document.querySelector(selector) call.
 func (*viewsType) AppendChild(view View, model Model, parentSelector string) error {
@@ -42,28 +37,68 @@ func (*viewsType) AppendChild(view View, model Model, parentSelector string) err
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
 	//Get our view HTML given the model
-	html := view.GetHTML(model)
-	if html == "" {
+	viewHTML := view.GetHTML(model)
+	if viewHTML == "" {
 		return nil
 	}
-	//Check our outer container tag is valid
-	if err := checkOuterTag(view.OuterTag()); err != nil {
+	//Create our child DOM element
+	viewEl, err := createViewElement(viewHTML, view.OuterTag(), view.Id())
+	if err != nil {
 		return err
 	}
-	//Create our element to append, with outer tag
-	el := document.CreateElement(view.OuterTag())
-	if _, found := viewsIndex[view.Id()]; found {
-		return fmt.Errorf("Duplicate humble.View Id: %s", view.Id())
-	}
-	viewsIndex[view.Id()] = &el
-	el.SetInnerHTML(html)
-	//We set attribute data-humble-view-id on outer container to simplify debugging and as a secondary means of
-	//selecting our View element from the DOM
-	el.SetAttribute("data-humble-view-id", view.Id())
 	//Append as child to selected parent DOM element
-	parent.AppendChild(el)
+	parent.AppendChild(viewEl)
 
 	return nil
+}
+
+// OnlyChild clears the current contents of the parent DOM element and sets the view as its only child.
+// It takes a View interface, a Model provided to the view and a parent DOM selector.
+// Parent selector works identically to JavaScript's document.querySelector(selector) call.
+func (*viewsType) SetOnlyChild(view View, model Model, parentSelector string) error {
+	//Grab DOM element matching parentSelector
+	parent := document.QuerySelector(parentSelector)
+	if parent == nil {
+		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
+	}
+	//Get our view HTML given the model
+	viewHTML := view.GetHTML(model)
+	if viewHTML == "" {
+		return nil
+	}
+	//Create our view DOM element
+	viewEl, err := createViewElement(viewHTML, view.OuterTag(), view.Id())
+	if err != nil {
+		return err
+	}
+	//Append as child to selected parent DOM element
+	parent.SetInnerHTML("")
+	parent.AppendChild(viewEl)
+
+	return nil
+}
+
+// createChildElement creates a DOM element from HTML and a outer container tag.
+// Takes innerHTML and outerTag, crafts a valid *dom.Element and adds it to the global map viewsIndex
+// for easy referencing. Returns the resultant *dom.Element or an error.
+func createViewElement(innerHTML string, outerTag string, viewId string) (dom.Element, error) {
+	//Check our outer container tag is valid
+	if err := checkOuterTag(outerTag); err != nil {
+		return nil, err
+	}
+	//Create our element to append, with outer tag
+	el := document.CreateElement(outerTag)
+	//Create unique element ID for the view element
+	if _, found := viewsIndex[viewId]; found {
+		return nil, fmt.Errorf("Duplicate humble.View Id: %s", viewId)
+	}
+	viewsIndex[viewId] = &el
+	el.SetInnerHTML(innerHTML)
+	//We set attribute data-humble-view-id on outer container to simplify debugging and as a secondary means of
+	//selecting our View element from the DOM
+	el.SetAttribute("data-humble-view-id", viewId)
+
+	return el, nil
 }
 
 // checkOuterTag will check that the given HTML tag is composed of alphabetical characters
