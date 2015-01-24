@@ -64,8 +64,6 @@ func newRoute(path string, handler Handler) *route {
 // trigger the appropriate handler function.
 func (r *Router) Start() {
 	r.setInitialHash()
-	// TODO detect support for onhashchange
-	// and use legacy version if not supported
 	r.watchHash()
 }
 
@@ -129,9 +127,13 @@ func removeEmptyStrings(a []string) []string {
 
 // watchHash watches DOM onhashchange and calls route.hashChanged
 func (r *Router) watchHash() {
-	js.Global.Set("onhashchange", func() {
-		r.hashChanged(getHash())
-	})
+	if js.Global.Get("onhashchange") != js.Undefined {
+		js.Global.Set("onhashchange", func() {
+			r.hashChanged(getHash())
+		})
+	} else {
+		r.legacyWatchHash()
+	}
 }
 
 // legacyWatchHash sets a ticker to check for hash changes every 50ms in browsers where onhashchange is not supported
