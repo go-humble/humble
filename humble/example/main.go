@@ -9,11 +9,15 @@ func main() {
 	console.Log("Starting...")
 
 	r := humble.NewRouter()
-	r.HandleFunc("/", func(params map[string]string) {
-		console.Log("At home page")
-	})
+	// r.HandleFunc("/", func(params map[string]string) {
+	// 	console.Log("At home page")
+	// })
 	r.HandleFunc("/about", func(params map[string]string) {
 		console.Log("At about page")
 	})
+	// r.HandleFunc("/faq", func(params map[string]string) {
+	// 	console.Log("At FAQ page")
+	// })
+
 	r.Start()
 }
