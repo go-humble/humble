@@ -5,8 +5,18 @@ import (
 	"honnef.co/go/js/console"
 )
 
+type TodoView struct {
+	humble.Identifier
+}
+
+func (t *TodoView) GetHTML(m humble.Model) string {
+	return "<p>Bringing Go to the frontend :) please no more Javascript :(</p>"
+}
+
 func main() {
 	console.Log("Starting...")
+
+	t := &TodoView{}
 
 	r := humble.NewRouter()
 	r.HandleFunc("/", func(params map[string]string) {
@@ -14,6 +24,7 @@ func main() {
 	})
 	r.HandleFunc("/about", func(params map[string]string) {
 		console.Log("At about page")
+		humble.Views.Append(t, nil, "#current-page")
 	})
 	r.HandleFunc("/about/{person_id}", func(params map[string]string) {
 		console.Log("At person with ID: ", params["person_id"])
@@ -26,4 +37,5 @@ func main() {
 	})
 
 	r.Start()
+
 }
