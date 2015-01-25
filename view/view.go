@@ -227,6 +227,28 @@ func AddListener(view View, childSelector string, eventName string, listener Lis
 	return nil
 }
 
+// Show will show the view's element by adding the style "display: block;"
+// If the view's element is already shown, it will do nothing.
+func Show(view View) error {
+	el, err := getElementByViewId(view.GetId())
+	if err != nil {
+		return err
+	}
+	el.SetAttribute("style", "display: block;")
+	return nil
+}
+
+// Hide will hide the view's element by adding the style "display: none;"
+// If the view's element is already hidden, it will do nothing.
+func Hide(view View) error {
+	el, err := getElementByViewId(view.GetId())
+	if err != nil {
+		return err
+	}
+	el.SetAttribute("style", "display: none;")
+	return nil
+}
+
 // nonBlockingListener takes care of wrapping our event listener functions with a goroutine to make these usually
 // blocking calls non-blocking, as required by GopherJS
 func nonBlockingListener(listener Listener) Listener {

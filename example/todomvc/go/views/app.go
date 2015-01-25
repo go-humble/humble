@@ -34,6 +34,14 @@ var (
 	}{}
 )
 
+type TodoFilter int
+
+const (
+	FilterAll TodoFilter = iota
+	FilterActive
+	FilterCompleted
+)
+
 func (a *App) RenderHTML() string {
 	return fmt.Sprintf(`
 	<section id="todoapp">
@@ -114,6 +122,42 @@ func (v *App) OnLoad() error {
 	}
 
 	return nil
+}
+
+func (v *App) ApplyFilter(filter TodoFilter) {
+	for _, todoView := range v.Children {
+		switch filter {
+		case FilterAll:
+			// For FilterAll we want to show all todos, regardless of whether they are complete
+			if err := view.Show(todoView); err != nil {
+				panic(err)
+			}
+		case FilterActive:
+			// For the FilterActive, we want to hide views that are completed
+			switch todoView.Model.IsCompleted {
+			case true:
+				if err := view.Hide(todoView); err != nil {
+					panic(err)
+				}
+			case false:
+				if err := view.Show(todoView); err != nil {
+					panic(err)
+				}
+			}
+		case FilterCompleted:
+			// For the FilterCompleted, we want to hide views that are completed
+			switch todoView.Model.IsCompleted {
+			case true:
+				if err := view.Show(todoView); err != nil {
+					panic(err)
+				}
+			case false:
+				if err := view.Hide(todoView); err != nil {
+					panic(err)
+				}
+			}
+		}
+	}
 }
 
 func (v *App) removeChild(todoView *Todo) {
