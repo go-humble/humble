@@ -129,7 +129,9 @@ func removeEmptyStrings(a []string) []string {
 func (r *Router) watchHash() {
 	if js.Global.Get("onhashchange") != js.Undefined {
 		js.Global.Set("onhashchange", func() {
-			r.hashChanged(getHash())
+			go func() {
+				r.hashChanged(getHash())
+			}()
 		})
 	} else {
 		console.Warn("onhashchange is not supported. Humble is falling back to a legacy version.")
