@@ -33,7 +33,7 @@ func main() {
 	r.HandleFunc("/", func(params map[string]string) {
 		// Get existing todos
 		todos := []*models.Todo{}
-		if err := humble.Models.GetAll(&todos); err != nil {
+		if err := humble.Models.ReadAll(&todos); err != nil {
 			panic(err)
 		}
 		//Start main app view, appView

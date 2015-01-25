@@ -23,7 +23,7 @@ var Models = modelsType{}
 // of json objects from the server, where each object represents a single Model
 // of some concrete type. It will use the UrlRoot() method of the models to
 // figure out which url to send the GET request to.
-func (*modelsType) GetAll(models interface{}) error {
+func (*modelsType) ReadAll(models interface{}) error {
 	// We expect some pointer to a slice of models. Like *[]Todo
 	// First Elem() givew us []Todo
 	// Second Elem() gives us Todo
