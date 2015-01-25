@@ -51,14 +51,14 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 	// If key is not Enter or Escape, we keep label and input.edit in sync but otherwise just return
 	key := event.(*dom.KeyboardEvent).KeyCode
 	// Grab contents of input.edit
-	inputEdit, err := humble.Views.ChildQuerySelector(t, "input.edit")
+	inputEdit, err := humble.Views.QuerySelector(t, "input.edit")
 	if err != nil {
 		panic(err)
 	}
 	title := inputEdit.Underlying().Get("value").String()
 	if key != EnterKey && key != EscapeKey {
 		// Change everything in label to match input.edit
-		label, err := humble.Views.ChildQuerySelector(t, "label.todo-label")
+		label, err := humble.Views.QuerySelector(t, "label.todo-label")
 		if err != nil {
 			panic(err)
 		}
@@ -67,11 +67,11 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 	}
 	// If Escape or Enter key is entered, we want to get out of input.edit field
 	if key == EscapeKey || key == EnterKey {
-		label, err := humble.Views.ChildQuerySelector(t, "label.todo-label")
+		label, err := humble.Views.QuerySelector(t, "label.todo-label")
 		if err != nil {
 			panic(err)
 		}
-		todoItem, err := humble.Views.ChildQuerySelector(t, "li.todo-list-item")
+		todoItem, err := humble.Views.QuerySelector(t, "li.todo-list-item")
 		if err != nil {
 			panic(err)
 		}
@@ -91,15 +91,15 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 
 func (t *Todo) todoDoubleClick(dom.Event) {
 	// Get elements
-	label, err := humble.Views.ChildQuerySelector(t, "label.todo-label")
+	label, err := humble.Views.QuerySelector(t, "label.todo-label")
 	if err != nil {
 		panic(err)
 	}
-	todoItem, err := humble.Views.ChildQuerySelector(t, "li.todo-list-item")
+	todoItem, err := humble.Views.QuerySelector(t, "li.todo-list-item")
 	if err != nil {
 		panic(err)
 	}
-	inputEdit, err := humble.Views.ChildQuerySelector(t, "input.edit")
+	inputEdit, err := humble.Views.QuerySelector(t, "input.edit")
 	if err != nil {
 		panic(err)
 	}

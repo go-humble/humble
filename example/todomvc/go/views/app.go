@@ -59,15 +59,15 @@ func (v *App) OuterTag() string {
 
 func (v *App) OnLoad() error {
 	var err error
-	elements.todoList, err = humble.Views.ChildQuerySelector(v, todoListSelector)
+	elements.todoList, err = humble.Views.QuerySelector(v, todoListSelector)
 	if err != nil {
 		return err
 	}
-	elements.newTodo, err = humble.Views.ChildQuerySelector(v, newTodoSelector)
+	elements.newTodo, err = humble.Views.QuerySelector(v, newTodoSelector)
 	if err != nil {
 		return err
 	}
-	elements.toggleBtn, err = humble.Views.ChildQuerySelector(v, toggleBtnSelector)
+	elements.toggleBtn, err = humble.Views.QuerySelector(v, toggleBtnSelector)
 	if err != nil {
 		return err
 	}

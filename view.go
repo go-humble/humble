@@ -195,20 +195,24 @@ func viewOnLoad(v View) error {
 	return nil
 }
 
-func (*viewsType) ChildQuerySelector(view View, childSelector string) (dom.Element, error) {
-	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), childSelector)
+// QuerySelector takes a selector string and returns the first matching element within the given view as a dom.Element.
+// Will return an error if no matching element is found.
+func (*viewsType) QuerySelector(view View, selector string) (dom.Element, error) {
+	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), selector)
 	targetEls := document.QuerySelector(fullSelector)
 	if targetEls == nil {
-		return nil, fmt.Errorf("Could not find element with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
+		return nil, fmt.Errorf("Could not find element with selector: `%s` inside of element for %T. Full selector was: `%s`", selector, view, fullSelector)
 	}
 	return targetEls, nil
 }
 
-func (*viewsType) ChildQuerySelectorAll(view View, childSelector string) ([]dom.Element, error) {
-	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), childSelector)
+// QuerySelectorAll takes a selector string and returns all matching elements within the given view as a []dom.Element.
+// Will return an error if no matching elements are found.
+func (*viewsType) QuerySelectorAll(view View, selector string) ([]dom.Element, error) {
+	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), selector)
 	targetEls := document.QuerySelectorAll(fullSelector)
 	if len(targetEls) == 0 {
-		return nil, fmt.Errorf("Could not find any elements with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
+		return nil, fmt.Errorf("Could not find any elements with selector: `%s` inside of element for %T. Full selector was: `%s`", selector, view, fullSelector)
 	}
 	return targetEls, nil
 }
@@ -224,7 +228,7 @@ func (*viewsType) ChildQuerySelectorAll(view View, childSelector string) ([]dom.
 // 	}
 // })
 func (*viewsType) AddListener(view View, childSelector string, eventName string, listener Listener) error {
-	targetEls, err := Views.ChildQuerySelectorAll(view, childSelector)
+	targetEls, err := Views.QuerySelectorAll(view, childSelector)
 	if err != nil {
 		return err
 	}
