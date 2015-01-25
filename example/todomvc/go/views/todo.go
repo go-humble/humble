@@ -11,7 +11,8 @@ import (
 
 type Todo struct {
 	humble.Identifier
-	Model *models.Todo
+	Model  *models.Todo
+	Parent *App
 }
 
 func (t *Todo) RenderHTML() string {
@@ -126,11 +127,17 @@ func (t *Todo) deleteButtonClicked(dom.Event) {
 	if err := model.Delete(t.Model); err != nil {
 		panic(err)
 	}
+	t.Parent.removeChild(t)
+	fmt.Println(t.Parent.Children)
 }
 
 func (t *Todo) checkboxClicked(event dom.Event) {
 	isChecked := event.Target().(*dom.HTMLInputElement).Checked
-	t.Model.IsCompleted = isChecked
+	t.setComplete(isChecked)
+}
+
+func (t *Todo) setComplete(isCompleted bool) {
+	t.Model.IsCompleted = isCompleted
 	if err := model.Update(t.Model); err != nil {
 		panic(err)
 	}

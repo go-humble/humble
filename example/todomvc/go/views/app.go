@@ -11,7 +11,8 @@ import (
 
 type App struct {
 	humble.Identifier
-	Model []*models.Todo
+	Model    []*models.Todo
+	Children []*Todo
 }
 
 const (
@@ -81,8 +82,10 @@ func (v *App) OnLoad() error {
 	//Create individual todo views
 	for _, todo := range v.Model {
 		todoView := &Todo{
-			Model: todo,
+			Model:  todo,
+			Parent: v,
 		}
+		v.addChild(todoView)
 		if err := view.AppendToParentHTML(todoView, todoListSelector); err != nil {
 			return err
 		}
@@ -95,12 +98,19 @@ func (v *App) OnLoad() error {
 		return err
 	}
 
-	// //Attach listener to newTodo input onkeyup event
-	// elements.newTodo.AddEventListener("keyup", false, nonBlockingListener(addTodoListener))
-	// //Attach listener to toggle list button onclick event
-	// elements.toggleBtn.AddEventListener("click", false, nonBlockingListener(toggleBtnListener))
-
 	return nil
+}
+
+func (v *App) removeChild(todoView *Todo) {
+	for i, child := range v.Children {
+		if child.Id == todoView.Id {
+			v.Children = append(v.Children[:i], v.Children[i+1:]...)
+		}
+	}
+}
+
+func (v *App) addChild(todoView *Todo) {
+	v.Children = append(v.Children, todoView)
 }
 
 // addTodoListener responds to DOM element input#new-todo being submitted by user to add a new todo to list and model
@@ -125,22 +135,24 @@ func (v *App) newTodoKeyUp(event dom.Event) {
 		panic(err)
 	}
 	todoView := &Todo{
-		Model: m,
+		Model:  m,
+		Parent: v,
 	}
 	if err := view.AppendToParentHTML(todoView, todoListSelector); err != nil {
 		panic(err)
 	}
+	v.addChild(todoView)
 	//Clear newTodo text input
 	elements.newTodo.Underlying().Set("value", "")
 }
 
-// toggleBtnListener responds to DOM element input#toggle-all being clicked to trigger hide/show todo list
+// toggleBtnListener responds to DOM element input#toggle-all being clicked to toggle all todo
+// items between the completed and active states.
 func (v *App) toggleBtnClicked(event dom.Event) {
-
-	if elements.todoList.GetAttribute("style") == "" || elements.todoList.GetAttribute("style") == "null" {
-		elements.todoList.SetAttribute("style", "visibility: hidden; height: 0;")
-	} else {
-		elements.todoList.SetAttribute("style", "")
+	isChecked := event.Target().(*dom.HTMLInputElement).Checked
+	fmt.Println(isChecked)
+	for _, todo := range v.Children {
+		todo.setComplete(isChecked)
 	}
 }
 
