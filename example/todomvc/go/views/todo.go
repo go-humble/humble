@@ -40,6 +40,10 @@ func (t *Todo) OnLoad() error {
 	if err != nil {
 		panic(err)
 	}
+	err = humble.Views.AddListener(t, "input.edit", "blur", t.todoEditBlurred)
+	if err != nil {
+		panic(err)
+	}
 	return nil
 }
 
@@ -67,18 +71,7 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 	}
 	// If Escape or Enter key is entered, we want to get out of input.edit field
 	if key == EscapeKey || key == EnterKey {
-		label, err := humble.Views.QuerySelector(t, "label.todo-label")
-		if err != nil {
-			panic(err)
-		}
-		todoItem, err := humble.Views.QuerySelector(t, "li.todo-list-item")
-		if err != nil {
-			panic(err)
-		}
-		//Remove 'editing' class to todoItem to make it disappear
-		todoItem.Class().Remove("editing")
-		// Show our label while input.edit is open
-		label.(*dom.HTMLLabelElement).Style().SetProperty("display", "block", "important")
+		t.removeEditTodo()
 	}
 	// If Enter key is pressed, we want to save to model
 	if key == EnterKey {
@@ -87,6 +80,25 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 			panic(err)
 		}
 	}
+}
+
+func (t *Todo) todoEditBlurred(dom.Event) {
+	t.removeEditTodo()
+}
+
+func (t *Todo) removeEditTodo() {
+	label, err := humble.Views.QuerySelector(t, "label.todo-label")
+	if err != nil {
+		panic(err)
+	}
+	todoItem, err := humble.Views.QuerySelector(t, "li.todo-list-item")
+	if err != nil {
+		panic(err)
+	}
+	//Remove 'editing' class to todoItem to make it disappear
+	todoItem.Class().Remove("editing")
+	// Show our label while input.edit is open
+	label.(*dom.HTMLLabelElement).Style().SetProperty("display", "block", "important")
 }
 
 func (t *Todo) todoDoubleClick(dom.Event) {
