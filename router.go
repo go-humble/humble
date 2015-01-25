@@ -112,7 +112,7 @@ func (r *Router) hashChanged(hash string) {
 	for i, match := range bestMatches {
 		params[bestRoute.paramNames[i]] = match
 	}
-	bestRoute.handler(params)
+	bestRoute.handler(params) //gopherjs:blocking
 }
 
 // removeEmptyStrings removes any empty strings from a
@@ -132,6 +132,7 @@ func (r *Router) watchHash() {
 			r.hashChanged(getHash())
 		})
 	} else {
+		console.Warn("onhashchange is not supported. Humble is falling back to a legacy version.")
 		r.legacyWatchHash()
 	}
 }
