@@ -8,6 +8,16 @@ import (
 	"regexp"
 )
 
+var document dom.Document
+
+func init() {
+	// If we are running this code in a test runner, document is undefined.
+	// We only want to initialize document if we are running in the browser.
+	if js.Global.Get("document") != js.Undefined {
+		document = dom.GetWindow().Document()
+	}
+}
+
 // View is the interface that must be implemented by all views.
 // RenderHTML() returns the HTML to be inserted into the DOM.
 // GetId() sets the unique ID of the View object.
@@ -32,17 +42,6 @@ type OnLoader interface {
 // Listener is a callback function that will be triggered in response
 // to some javascript event.
 type Listener func(dom.Event)
-
-var viewsIndex = map[string]dom.Element{}
-var document dom.Document
-
-func init() {
-	// If we are running this code in a test runner, document is undefined.
-	// We only want to initialize document if we are running in the browser.
-	if js.Global.Get("document") != js.Undefined {
-		document = dom.GetWindow().Document()
-	}
-}
 
 // AppendToParentHTML appends a view to a parent DOM element. It takes a View interface and
 // a parent DOM selector. parentSelector works identically to JavaScript's document.querySelector(selector)
@@ -123,49 +122,41 @@ func Remove(view View) error {
 }
 
 func getElementByViewId(viewId string) (dom.Element, error) {
-	if indexedEl, found := viewsIndex[viewId]; found {
-		return indexedEl, nil
-	} else {
-		// The element wasn't in our index. Try finding in the DOM as a last
-		// resort. (Maybe our index got out of date because the DOM was changed
-		// outside of humble).
-		selector := fmt.Sprintf("[data-humble-view-id='%s']", viewId)
-		el := document.QuerySelector(selector)
-		if el == nil {
-			return nil, humble.NewViewElementNotFoundError(viewId)
-		}
-		viewsIndex[viewId] = el //Add our element to index since it exists in DOM but was not found in index
-		return el, nil
+	// Use a query selector to find the element in the DOM
+	selector := fmt.Sprintf("[data-humble-view-id='%s']", viewId)
+	el := document.QuerySelector(selector)
+	if el == nil {
+		return nil, humble.NewViewElementNotFoundError(viewId)
 	}
+	return el, nil
 }
 
 // createViewElement creates a DOM element from HTML and a outer container tag.
-// Takes innerHTML and outerTag, crafts a valid *dom.Element and adds it to the global map viewsIndex
-// for easy referencing. Returns the resultant *dom.Element or an error.
+// Takes innerHTML and outerTag and crafts a valid dom.Element. Returns the resultant
+// dom.Element or an error.
 func createViewElement(view View) (dom.Element, error) {
-	//Check our outer container tag is valid
+	// Check our outer container tag is valid
 	if err := checkOuterTag(view.OuterTag()); err != nil {
 		return nil, err
 	}
-	//Get our view HTML
+	// Get our view HTML
 	viewHTML := view.RenderHTML()
-	//Check if view element exists in global map, otherwise create it
+	// Check if view element exists in global map, otherwise create it
 	var el dom.Element
-	if indexedEl, err := getElementByViewId(view.GetId()); err != nil {
+	if existingEl, err := getElementByViewId(view.GetId()); err != nil {
 		if _, notFound := err.(humble.ViewElementNotFoundError); notFound {
 			// The view was not found in the DOM. We need to create it
 			el = document.CreateElement(view.OuterTag())
-			viewsIndex[view.GetId()] = el
 		} else {
 			// For any other type of error, return it.
 			return nil, err
 		}
 	} else {
-		el = indexedEl
+		el = existingEl
 	}
 	el.SetInnerHTML(viewHTML)
-	//We set attribute data-humble-view-id on outer container to simplify debugging and as a secondary means of
-	//selecting our View element from the DOM
+	// We set attribute data-humble-view-id on outer container so we can get it from the
+	// DOM later on with a QuerySelector
 	el.SetAttribute("data-humble-view-id", view.GetId())
 
 	return el, nil
