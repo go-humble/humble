@@ -12,6 +12,7 @@ package humble
 
 import (
 	"fmt"
+	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/dom"
 	"regexp"
 )
@@ -26,7 +27,15 @@ type viewsType struct{}
 
 var viewsIndex = map[string]*dom.Element{}
 var Views = viewsType{}
-var document = dom.GetWindow().Document()
+var document dom.Document
+
+func init() {
+	// If we are running this code in a test runner, document is undefined.
+	// We only want to initialize document if we are running in the browser.
+	if js.Global.Get("document") != js.Undefined {
+		document = dom.GetWindow().Document()
+	}
+}
 
 // AppendChild appends a view as a child to a parent DOM element. It takes a View interface and
 // a parent DOM selector. parentSelector works identically to JavaScript's document.querySelector(selector)
