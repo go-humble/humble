@@ -8,7 +8,7 @@ import (
 )
 
 // View is the interface that must be implemented by all views.
-// GetHTML() returns the HTML to be inserted into the DOM.
+// RenderHTML() returns the HTML to be inserted into the DOM.
 // GetId() sets the unique ID of the View object.
 //// To be given a random unique id, simply include humble.Identifer as an anonymous field ie.
 //// type ExampleView struct {
@@ -17,7 +17,7 @@ import (
 // OuterTag() sets the tag name for the outer container that will contain HTML returned from getHTML().
 //// This is required, but can be simply "div" or "span" for a semantically neutral HTML element.
 type View interface {
-	GetHTML() string
+	RenderHTML() string
 	GetId() string
 	OuterTag() string
 }
@@ -100,7 +100,7 @@ func (*viewsType) ReplaceParentHTML(view View, parentSelector string) error {
 // Returns an error if the dom element for this view does not exist. After the view's
 // element is added to the DOM, Update calls view.OnLoad if it is defined.
 func (*viewsType) Update(view View) error {
-	html := view.GetHTML()
+	html := view.RenderHTML()
 	el, err := getElementByViewId(view.GetId())
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func createViewElement(view View) (dom.Element, error) {
 		return nil, err
 	}
 	//Get our view HTML
-	viewHTML := view.GetHTML()
+	viewHTML := view.RenderHTML()
 	//Check if view element exists in global map, otherwise create it
 	var el dom.Element
 	if indexedEl, err := getElementByViewId(view.GetId()); err != nil {

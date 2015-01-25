@@ -12,7 +12,7 @@ type Todo struct {
 	Model *models.Todo
 }
 
-func (t *Todo) GetHTML() string {
+func (t *Todo) RenderHTML() string {
 	return fmt.Sprintf(`<li>
 		<input class="toggle" type="checkbox" %s>
 		<label>%s</label>
