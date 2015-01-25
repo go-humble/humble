@@ -195,6 +195,24 @@ func viewOnLoad(v View) error {
 	return nil
 }
 
+func (*viewsType) ChildQuerySelector(view View, childSelector string) (dom.Element, error) {
+	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), childSelector)
+	targetEls := document.QuerySelector(fullSelector)
+	if targetEls == nil {
+		return nil, fmt.Errorf("Could not find element with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
+	}
+	return targetEls, nil
+}
+
+func (*viewsType) ChildQuerySelectorAll(view View, childSelector string) ([]dom.Element, error) {
+	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), childSelector)
+	targetEls := document.QuerySelectorAll(fullSelector)
+	if len(targetEls) == 0 {
+		return nil, fmt.Errorf("Could not find any elements with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
+	}
+	return targetEls, nil
+}
+
 // AddListener adds an event listener to the element inside the view's element identified by childSelector.
 // It expects a Listener as an argument, which will be called when the event is triggered. When this
 // calls el.AddEventListener it sets the useCapture option to false. AddListener cannot be used to
@@ -206,10 +224,9 @@ func viewOnLoad(v View) error {
 // 	}
 // })
 func (*viewsType) AddListener(view View, childSelector string, eventName string, listener Listener) error {
-	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), childSelector)
-	targetEls := document.QuerySelectorAll(fullSelector)
-	if len(targetEls) == 0 {
-		return fmt.Errorf("Could not find element with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
+	targetEls, err := Views.ChildQuerySelectorAll(view, childSelector)
+	if err != nil {
+		return err
 	}
 	for _, el := range targetEls {
 		el.AddEventListener(eventName, false, nonBlockingListener(listener))
