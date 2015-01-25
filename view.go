@@ -1,7 +1,7 @@
 package humble
 
 // View is the interface that must be implemented by all views.
-// GetHTML(Model) returns the HTML to be inserted into the DOM, given an object implementing Model.
+// GetHTML() returns the HTML to be inserted into the DOM.
 // Id() sets the unique ID of the View object.
 //// To be given a random unique id, simply include humble.Identifer as an anonymous field ie.
 //// type ExampleView struct {
@@ -37,25 +37,17 @@ func init() {
 	}
 }
 
-// AppendToParent appends a view to a parent DOM element. It takes a View interface and
+// AppendToParentHTML appends a view to a parent DOM element. It takes a View interface and
 // a parent DOM selector. parentSelector works identically to JavaScript's document.querySelector(selector)
 // call.
-func (*viewsType) AppendToParent(view View, parentSelector string) error {
+func (*viewsType) AppendToParentHTML(view View, parentSelector string) error {
 	//Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
-	//Get our view HTML
-	viewHTML := view.GetHTML()
-	if viewHTML == "" {
-		return nil
-	}
 	//Create our child DOM element
-
-	// viewEl := GetOrCreateViewElement(view)
-	// viewEl.SetInnerHTML()
-	viewEl, err := createViewElement(viewHTML, view.OuterTag(), view.Id())
+	viewEl, err := createViewElement(view)
 	if err != nil {
 		return err
 	}
@@ -65,34 +57,17 @@ func (*viewsType) AppendToParent(view View, parentSelector string) error {
 	return nil
 }
 
-// Update updates a view in place by calling SetInnerHTML on the view's element.
-// Returns an error if the dom element for this view does not exist.
-func (*viewsType) Update(view View) error {
-	html := view.GetHTML()
-	el, err := Views.GetElementByViewId(view.Id())
-	if err != nil {
-		return err
-	}
-	el.SetInnerHTML(html)
-	return nil
-}
-
-// SetInnerHTML replaces the current contents of the parent DOM element.
+// ReplaceParentHTML replaces the current inner HTML of the parent DOM element with the view.
 // It takes a View interface and a parent DOM selector. parentSelector works identically to
 // JavaScript's document.querySelector(selector) call.
-func (*viewsType) SetInnerHTML(view View, parentSelector string) error {
+func (*viewsType) ReplaceParentHTML(view View, parentSelector string) error {
 	//Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
-	//Get our view HTML
-	viewHTML := view.GetHTML()
-	if viewHTML == "" {
-		return nil
-	}
 	//Create our view DOM element
-	viewEl, err := createViewElement(viewHTML, view.OuterTag(), view.Id())
+	viewEl, err := createViewElement(view)
 	if err != nil {
 		return err
 	}
@@ -102,16 +77,29 @@ func (*viewsType) SetInnerHTML(view View, parentSelector string) error {
 	return nil
 }
 
+// Update updates a view in place by calling SetInnerHTML on the view's element.
+// Returns an error if the dom element for this view does not exist.
+func (*viewsType) Update(view View) error {
+	html := view.GetHTML()
+	el, err := getElementByViewId(view.Id())
+	if err != nil {
+		return err
+	}
+	el.SetInnerHTML(html)
+	return nil
+}
+
 // Remove removes a view element from the DOM, returning true if successful, false otherwise
 func (*viewsType) Remove(view View) error {
-	viewEl, err := Views.GetElementByViewId(view.Id())
+	viewEl, err := getElementByViewId(view.Id())
 	if err != nil {
 		return err
 	}
 	viewEl.ParentElement().RemoveChild(viewEl)
+	return nil
 }
 
-func (*viewsType) GetElementByViewId(viewId string) (dom.Element, error) {
+func getElementByViewId(viewId string) (dom.Element, error) {
 	if indexedEl, found := viewsIndex[viewId]; found {
 		return indexedEl, nil
 	} else {
@@ -121,9 +109,9 @@ func (*viewsType) GetElementByViewId(viewId string) (dom.Element, error) {
 		selector := fmt.Sprintf("[data-humble-view-id='%s']", viewId)
 		el := document.QuerySelector(selector)
 		if el == nil {
-			// TODO make a named error for these cases
 			return nil, ViewElementNotFoundError{viewId: viewId}
 		}
+		viewsIndex[viewId] = el //Add our element to index since it exists in DOM but was not found in index
 		return el, nil
 	}
 }
@@ -131,17 +119,20 @@ func (*viewsType) GetElementByViewId(viewId string) (dom.Element, error) {
 // createViewElement creates a DOM element from HTML and a outer container tag.
 // Takes innerHTML and outerTag, crafts a valid *dom.Element and adds it to the global map viewsIndex
 // for easy referencing. Returns the resultant *dom.Element or an error.
-func createViewElement(view View, innerHTML string) (dom.Element, error) {
+func createViewElement(view View) (dom.Element, error) {
 	//Check our outer container tag is valid
 	if err := checkOuterTag(view.OuterTag()); err != nil {
 		return nil, err
 	}
-	//Create our element to append, with outer tag
+	//Get our view HTML
+	viewHTML := view.GetHTML()
+	//Check if view element exists in global map, otherwise create it
 	var el dom.Element
-	if indexedEl, err := Views.GetElementByViewId(viewId); err != nil {
+	if indexedEl, err := getElementByViewId(view.Id()); err != nil {
 		if _, notFound := err.(ViewElementNotFoundError); notFound {
 			// The view was not found in the DOM. We need to create it
-			el = document.CreateElement(outerTag)
+			el = document.CreateElement(view.OuterTag())
+			viewsIndex[view.Id()] = el
 		} else {
 			// For any other type of error, return it.
 			return nil, err
@@ -149,11 +140,10 @@ func createViewElement(view View, innerHTML string) (dom.Element, error) {
 	} else {
 		el = indexedEl
 	}
-	viewsIndex[viewId] = el
-	el.SetInnerHTML(innerHTML)
+	el.SetInnerHTML(viewHTML)
 	//We set attribute data-humble-view-id on outer container to simplify debugging and as a secondary means of
 	//selecting our View element from the DOM
-	el.SetAttribute("data-humble-view-id", viewId)
+	el.SetAttribute("data-humble-view-id", view.Id())
 
 	return el, nil
 }

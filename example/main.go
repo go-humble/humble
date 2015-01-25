@@ -27,7 +27,7 @@ func main() {
 	r := humble.NewRouter()
 	r.HandleFunc("/", func(params map[string]string) {
 		v.Name = "Home"
-		if err := humble.Views.SetInnerHTML(v, "#current-page"); err != nil {
+		if err := humble.Views.ReplaceParentHTML(v, "#current-page"); err != nil {
 			panic(err)
 		}
 	})
@@ -39,7 +39,7 @@ func main() {
 	})
 	r.HandleFunc("/faq", func(params map[string]string) {
 		v.Name = "FAQ"
-		if err := humble.Views.SetInnerHTML(v, "#current-page"); err != nil {
+		if err := humble.Views.ReplaceParentHTML(v, "#current-page"); err != nil {
 			panic(err)
 		}
 	})
