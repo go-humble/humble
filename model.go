@@ -111,6 +111,11 @@ func (*modelsType) Create(model Model) error {
 	return nil
 }
 
+// Update expects a pointer some concrete type which implements Model (e.g., *Todo), with a model.Id
+// that matches a stored object on the server. It will send a PUT request to the RESTful server.
+// It expects a JSON containing the updated object from the server if the request was successful,
+// and will set the fields of model with the data in the response object.
+// It will use the RootURL() method of the model to determine which url to send the PUT request to.
 func (*modelsType) Update(model Model) error {
 	//Set our request URL to be root URL/Id, eg. example.com/api/todos/4
 	fullURL := model.RootURL() + "/" + model.GetId()
