@@ -86,11 +86,11 @@ func (v *App) OnLoad() error {
 		}
 	}
 
-	err = humble.Views.AddListener(v, newTodoSelector, "keyup", v.addTodoListener)
+	err = humble.Views.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp)
 	if err != nil {
 		return err
 	}
-	err = humble.Views.AddListener(v, toggleBtnSelector, "click", v.toggleBtnListener)
+	err = humble.Views.AddListener(v, toggleBtnSelector, "click", v.toggleBtnClicked)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (v *App) OnLoad() error {
 }
 
 // addTodoListener responds to DOM element input#new-todo being submitted by user to add a new todo to list and model
-func (v *App) addTodoListener(event dom.Event) {
+func (v *App) newTodoKeyUp(event dom.Event) {
 	//If not Enter key, ignore event
 	if event.(*dom.KeyboardEvent).KeyCode != EnterKey {
 		return
@@ -135,7 +135,7 @@ func (v *App) addTodoListener(event dom.Event) {
 }
 
 // toggleBtnListener responds to DOM element input#toggle-all being clicked to trigger hide/show todo list
-func (v *App) toggleBtnListener(event dom.Event) {
+func (v *App) toggleBtnClicked(event dom.Event) {
 
 	if elements.todoList.GetAttribute("style") == "" || elements.todoList.GetAttribute("style") == "null" {
 		elements.todoList.SetAttribute("style", "visibility: hidden; height: 0;")
