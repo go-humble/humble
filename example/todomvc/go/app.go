@@ -40,7 +40,9 @@ func main() {
 			view := &views.Todo{
 				Model: todo,
 			}
-			humble.Views.AppendToParentHTML(view, todoListSelector)
+			if err := humble.Views.AppendToParentHTML(view, todoListSelector); err != nil {
+				panic(err)
+			}
 		}
 	})
 	r.HandleFunc("/completed", func(params map[string]string) {
