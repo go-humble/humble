@@ -121,6 +121,10 @@ func (t *Todo) todoDoubleClick(dom.Event) {
 }
 
 func (t *Todo) deleteButtonClicked(dom.Event) {
+	t.remove()
+}
+
+func (t *Todo) remove() {
 	if err := view.Remove(t); err != nil {
 		panic(err)
 	}

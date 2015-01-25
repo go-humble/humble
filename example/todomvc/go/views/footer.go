@@ -37,6 +37,8 @@ func (f *Footer) OuterTag() string {
 }
 
 func (f *Footer) OnLoad() error {
+	// Set some things in the DOM which may have changed
+	// after an update.
 	if err := f.setSelected(); err != nil {
 		return err
 	}
@@ -45,6 +47,10 @@ func (f *Footer) OnLoad() error {
 	} else {
 		f.showClearCompleted()
 	}
+
+	// Add listeners
+	view.AddListener(f, "button#clear-completed", "click", f.clearCompleted)
+
 	return nil
 }
 
@@ -90,6 +96,18 @@ func (f *Footer) setSelected() error {
 		}
 	}
 	return nil
+}
+
+func (f *Footer) clearCompleted(dom.Event) {
+	f.hideClearCompleted()
+	if f.TodoViews == nil {
+		return
+	}
+	for _, todoView := range *(f.TodoViews) {
+		if todoView.Model.IsCompleted {
+			todoView.remove()
+		}
+	}
 }
 
 func (f *Footer) showClearCompleted() {
