@@ -26,15 +26,9 @@ var (
 
 func main() {
 	console.Log("Starting...")
+
 	r := humble.NewRouter()
 
-	err := humble.Models.Create(&models.Todo{
-		Title:       "blahsdas&title=asadas !!!",
-		IsCompleted: true,
-	})
-	if err != nil {
-		panic(err)
-	}
 	r.HandleFunc("/", func(params map[string]string) {
 		// Get existing todos
 		todos := []*models.Todo{}

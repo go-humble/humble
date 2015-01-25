@@ -47,7 +47,7 @@ func (*modelsType) GetAll(models interface{}) error {
 	}
 	err = json.Unmarshal([]byte(req.Response.String()), models)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
 	}
 
 	return nil
@@ -93,14 +93,20 @@ func (*modelsType) Create(model Model) error {
 			bodyString += "&"
 		}
 	}
-
+	//Create our request
 	req := xhr.NewRequest("POST", fullUrl)
 	req.Timeout = 1000 //one second, in milliseconds
 	req.ResponseType = "text"
 	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+	//Send our request
 	err := req.Send(bodyString)
 	if err != nil {
 		return err
+	}
+	//Unmarshal our response object into our model
+	err = json.Unmarshal([]byte(req.Response.String()), model)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
 	}
 	return nil
 }
