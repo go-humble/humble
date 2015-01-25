@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gophergala/humble"
 	"github.com/gophergala/humble/example/todomvc/go/models"
+	"github.com/gophergala/humble/example/todomvc/go/views"
 	"honnef.co/go/js/console"
 	"honnef.co/go/js/dom"
 )
@@ -10,6 +11,9 @@ import (
 const (
 	EnterKey  = 13
 	EscapeKey = 27
+
+	todoListSelector = "#todo-list"
+	newTodoSelector  = "#new-todo"
 )
 
 var (
@@ -17,10 +21,7 @@ var (
 	elements = struct {
 		todoList dom.Element
 		newTodo  dom.Element
-	}{
-		todoList: doc.QuerySelector("#todo-list"),
-		newTodo:  doc.QuerySelector("#new-todo"),
-	}
+	}{}
 )
 
 func main() {
@@ -32,12 +33,22 @@ func main() {
 		if err := humble.Models.GetAll(&todos); err != nil {
 			panic(err)
 		}
+		if len(todos) > 0 {
+			showTodos()
+		}
 		for _, todo := range todos {
-			console.Log(todo)
+			view := &views.Todo{
+				Model: todo,
+			}
+			humble.Views.AppendToParentHTML(view, todoListSelector)
 		}
 	})
 	r.HandleFunc("/completed", func(params map[string]string) {
 		console.Log("At Completed")
 	})
 	r.Start()
+}
+
+func showTodos() {
+	doc.QuerySelector("#main").SetAttribute("style", "display: block;")
 }
