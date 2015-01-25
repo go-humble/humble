@@ -11,8 +11,9 @@ import (
 
 type App struct {
 	humble.Identifier
-	Children []*Todo
-	Footer   *Footer
+	Children      []*Todo
+	Footer        *Footer
+	CurrentFilter TodoFilter
 }
 
 const (
@@ -125,6 +126,7 @@ func (v *App) OnLoad() error {
 }
 
 func (v *App) ApplyFilter(filter TodoFilter) {
+	v.CurrentFilter = filter
 	for _, todoView := range v.Children {
 		switch filter {
 		case FilterAll:
@@ -221,6 +223,46 @@ func (v *App) toggleBtnClicked(event dom.Event) {
 	isChecked := event.Target().(*dom.HTMLInputElement).Checked
 	for _, todo := range v.Children {
 		todo.setComplete(isChecked)
+	}
+
+	if v.CurrentFilter == FilterActive {
+		switch isChecked {
+		case true:
+			// If we are only showing active todos and we just completed all of them,
+			// hide all the views
+			for _, todoView := range v.Children {
+				if err := view.Hide(todoView); err != nil {
+					panic(err)
+				}
+			}
+		case false:
+			// If we are only showing active todos and we just uncompleted all of them,
+			// show all the views
+			for _, todoView := range v.Children {
+				if err := view.Show(todoView); err != nil {
+					panic(err)
+				}
+			}
+		}
+	} else if v.CurrentFilter == FilterCompleted {
+		switch isChecked {
+		case true:
+			// If we are only showing completed todos and we just completed all of them,
+			// show all the views
+			for _, todoView := range v.Children {
+				if err := view.Show(todoView); err != nil {
+					panic(err)
+				}
+			}
+		case false:
+			// If we are only showing completed todos and we just uncompleted all of them,
+			// hide all the views
+			for _, todoView := range v.Children {
+				if err := view.Hide(todoView); err != nil {
+					panic(err)
+				}
+			}
+		}
 	}
 
 	// Update the footer text

@@ -137,6 +137,38 @@ func (t *Todo) checkboxClicked(event dom.Event) {
 	if err := view.Update(t.Parent.Footer); err != nil {
 		panic(err)
 	}
+
+	if t.Parent.CurrentFilter == FilterActive {
+		switch isChecked {
+		case true:
+			// If we are only showing active todos and we just completed this one,
+			// hide it
+			if err := view.Hide(t); err != nil {
+				panic(err)
+			}
+		case false:
+			// If we are only showing active todos and we just uncompleted this on,
+			// show it.
+			if err := view.Show(t); err != nil {
+				panic(err)
+			}
+		}
+	} else if t.Parent.CurrentFilter == FilterCompleted {
+		switch isChecked {
+		case true:
+			// If we are only showing completed todos and we just completed this on,
+			// show it.
+			if err := view.Show(t); err != nil {
+				panic(err)
+			}
+		case false:
+			// If we are only showing completed todos and we just uncompleted this on,
+			// hide it.
+			if err := view.Hide(t); err != nil {
+				panic(err)
+			}
+		}
+	}
 }
 
 func (t *Todo) setComplete(isCompleted bool) {
