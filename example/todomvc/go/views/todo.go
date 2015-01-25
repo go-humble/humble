@@ -28,11 +28,15 @@ func (t *Todo) OnLoad() error {
 	if err != nil {
 		panic(err)
 	}
-	err = humble.Views.AddListener(t, "li.todo-list-item", "dblclick", t.todoDoubleClick)
+	err = humble.Views.AddListener(t, "label.todo-label", "dblclick", t.todoDoubleClick)
 	if err != nil {
 		panic(err)
 	}
 	err = humble.Views.AddListener(t, "input.edit", "keyup", t.todoEditKeyUp)
+	if err != nil {
+		panic(err)
+	}
+	err = humble.Views.AddListener(t, "input.toggle", "click", t.checkboxClicked)
 	if err != nil {
 		panic(err)
 	}
@@ -63,12 +67,18 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 	}
 	// If Escape or Enter key is entered, we want to get out of input.edit field
 	if key == EscapeKey || key == EnterKey {
+		label, err := humble.Views.ChildQuerySelector(t, "label.todo-label")
+		if err != nil {
+			panic(err)
+		}
 		todoItem, err := humble.Views.ChildQuerySelector(t, "li.todo-list-item")
 		if err != nil {
 			panic(err)
 		}
 		//Remove 'editing' class to todoItem to make it disappear
 		todoItem.Class().Remove("editing")
+		// Show our label while input.edit is open
+		label.(*dom.HTMLLabelElement).Style().SetProperty("display", "block", "important")
 	}
 	// If Enter key is pressed, we want to save to model
 	if key == EnterKey {
@@ -81,6 +91,10 @@ func (t *Todo) todoEditKeyUp(event dom.Event) {
 
 func (t *Todo) todoDoubleClick(dom.Event) {
 	// Get elements
+	label, err := humble.Views.ChildQuerySelector(t, "label.todo-label")
+	if err != nil {
+		panic(err)
+	}
 	todoItem, err := humble.Views.ChildQuerySelector(t, "li.todo-list-item")
 	if err != nil {
 		panic(err)
@@ -89,6 +103,8 @@ func (t *Todo) todoDoubleClick(dom.Event) {
 	if err != nil {
 		panic(err)
 	}
+	// Hide our label while input.edit is open
+	label.(*dom.HTMLLabelElement).Style().SetProperty("display", "none", "important")
 	// Append 'editing' class to todoItem to make it an editable input field
 	todoItem.Class().Add("editing")
 	// Set focus to input.edit field
@@ -102,4 +118,13 @@ func (t *Todo) deleteButtonClicked(dom.Event) {
 	if err := humble.Models.Delete(t.Model); err != nil {
 		panic(err)
 	}
+}
+
+func (t *Todo) checkboxClicked(event dom.Event) {
+	isChecked := event.Target().(*dom.HTMLInputElement).Checked
+	t.Model.IsCompleted = isChecked
+	if err := humble.Models.Update(t.Model); err != nil {
+		panic(err)
+	}
+
 }
