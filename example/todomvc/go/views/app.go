@@ -150,7 +150,6 @@ func (v *App) newTodoKeyUp(event dom.Event) {
 // items between the completed and active states.
 func (v *App) toggleBtnClicked(event dom.Event) {
 	isChecked := event.Target().(*dom.HTMLInputElement).Checked
-	fmt.Println(isChecked)
 	for _, todo := range v.Children {
 		todo.setComplete(isChecked)
 	}
