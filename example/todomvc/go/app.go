@@ -39,9 +39,8 @@ func main() {
 			panic(err)
 		}
 		//Start main app view, appView
-		appView := &views.App{
-			Model: todos,
-		}
+		appView := &views.App{}
+		appView.InitChildren(todos)
 		if err := view.AppendToParentHTML(appView, bodySelector); err != nil {
 			panic(err)
 		}

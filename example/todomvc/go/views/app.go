@@ -11,8 +11,8 @@ import (
 
 type App struct {
 	humble.Identifier
-	Model    []*models.Todo
 	Children []*Todo
+	Footer   *Footer
 }
 
 const (
@@ -46,18 +46,30 @@ func (a *App) RenderHTML() string {
 			<label for="toggle-all">Mark all as complete</label>
 			<ul id="todo-list"></ul>
 		</section>
-		<footer id="footer"></footer>
+		<footer id="footer">
+		</footer>
 	</section>
 	<footer id="info">
 		<p>Double-click to edit a todo</p>
 		<p>Part of <a href="http://todomvc.com">TodoMVC</a>
 		</p>
 	</footer>
-	<script src="js/app.js"></script>`)
+	<script src="js/app.js"></script>`, len(a.Children))
 }
 
 func (v *App) OuterTag() string {
 	return "div"
+}
+
+func (v *App) InitChildren(todos []*models.Todo) {
+	//Create individual todo views
+	for _, todo := range todos {
+		todoView := &Todo{
+			Model:  todo,
+			Parent: v,
+		}
+		v.addChild(todoView)
+	}
 }
 
 func (v *App) OnLoad() error {
@@ -75,20 +87,19 @@ func (v *App) OnLoad() error {
 		return err
 	}
 
-	if len(v.Model) > 0 {
-		showTodosContainer()
+	// Add each child view to the DOM
+	for _, childView := range v.Children {
+		view.AppendToParentHTML(childView, todoListSelector)
 	}
 
-	//Create individual todo views
-	for _, todo := range v.Model {
-		todoView := &Todo{
-			Model:  todo,
-			Parent: v,
-		}
-		v.addChild(todoView)
-		if err := view.AppendToParentHTML(todoView, todoListSelector); err != nil {
-			return err
-		}
+	// Set up the footer view
+	v.Footer = &Footer{}
+
+	if len(v.Children) > 0 {
+		showTodosContainer()
+		showTodosFooter()
+		v.Footer.TodoViews = &v.Children
+		view.AppendToParentHTML(v.Footer, "#footer")
 	}
 
 	if err := view.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp); err != nil {
@@ -106,6 +117,10 @@ func (v *App) removeChild(todoView *Todo) {
 		if child.Id == todoView.Id {
 			v.Children = append(v.Children[:i], v.Children[i+1:]...)
 		}
+	}
+	// Update the footer text
+	if err := view.Update(v.Footer); err != nil {
+		panic(err)
 	}
 }
 
@@ -126,6 +141,7 @@ func (v *App) newTodoKeyUp(event dom.Event) {
 	}
 	//This ensures the todo list container is visible. Does nothing if already visible, but costs no more than a check.
 	showTodosContainer()
+	showTodosFooter()
 	//Create a model, send to server and append view
 	m := &models.Todo{
 		Title:       title,
@@ -144,6 +160,11 @@ func (v *App) newTodoKeyUp(event dom.Event) {
 	v.addChild(todoView)
 	//Clear newTodo text input
 	elements.newTodo.Underlying().Set("value", "")
+
+	// Update the footer text
+	if err := view.Update(v.Footer); err != nil {
+		panic(err)
+	}
 }
 
 // toggleBtnListener responds to DOM element input#toggle-all being clicked to toggle all todo
@@ -153,9 +174,20 @@ func (v *App) toggleBtnClicked(event dom.Event) {
 	for _, todo := range v.Children {
 		todo.setComplete(isChecked)
 	}
+
+	// Update the footer text
+	if err := view.Update(v.Footer); err != nil {
+		panic(err)
+	}
 }
 
 // showTodosContainer sets the outer container of todos to visible when our first todo is added
 func showTodosContainer() {
 	doc.QuerySelector("#main").SetAttribute("style", "display: block;")
+}
+
+// showTodosContainer sets the outer todos footer (which contains links and the number of items left)
+// to visible when our first todo is added
+func showTodosFooter() {
+	doc.QuerySelector("#footer").SetAttribute("style", "display: block;")
 }

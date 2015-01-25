@@ -134,6 +134,9 @@ func (t *Todo) deleteButtonClicked(dom.Event) {
 func (t *Todo) checkboxClicked(event dom.Event) {
 	isChecked := event.Target().(*dom.HTMLInputElement).Checked
 	t.setComplete(isChecked)
+	if err := view.Update(t.Parent.Footer); err != nil {
+		panic(err)
+	}
 }
 
 func (t *Todo) setComplete(isCompleted bool) {
