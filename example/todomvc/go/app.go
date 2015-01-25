@@ -40,7 +40,9 @@ func main() {
 		appView := &views.App{
 			Model: todos,
 		}
-		humble.Views.AppendToParentHTML(appView, bodySelector)
+		if err := humble.Views.AppendToParentHTML(appView, bodySelector); err != nil {
+			panic(err)
+		}
 	})
 	r.HandleFunc("/completed", func(params map[string]string) {
 		console.Log("At Completed")

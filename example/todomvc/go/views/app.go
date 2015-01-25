@@ -114,7 +114,9 @@ func (v *App) addTodoListener(event dom.Event) {
 	if title == "" {
 		return
 	}
+	//This ensures the todo list container is visible. Does nothing if already visible, but costs no more than a check.
 	showTodosContainer()
+	//Create a model, send to server and append view
 	m := &models.Todo{
 		Title:       title,
 		IsCompleted: false,
@@ -128,6 +130,8 @@ func (v *App) addTodoListener(event dom.Event) {
 	if err := humble.Views.AppendToParentHTML(view, todoListSelector); err != nil {
 		panic(err)
 	}
+	//Clear newTodo text input
+	elements.newTodo.Underlying().Set("value", "")
 }
 
 // toggleBtnListener responds to DOM element input#toggle-all being clicked to trigger hide/show todo list
