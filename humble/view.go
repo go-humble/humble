@@ -17,7 +17,7 @@ import (
 )
 
 type View interface {
-	GetHTML(Model) string
+	GetHTML() string
 	Id() string
 	OuterTag() string
 }
@@ -28,16 +28,17 @@ var viewsIndex = map[string]*dom.Element{}
 var Views = viewsType{}
 var document = dom.GetWindow().Document()
 
-// AppendChild appends a view as a child to a parent DOM element. It takes a View interface, a Model provided to the view
-// and a parent DOM selector. Parent selector works identically to JavaScript's document.querySelector(selector) call.
-func (*viewsType) AppendChild(view View, model Model, parentSelector string) error {
+// AppendChild appends a view as a child to a parent DOM element. It takes a View interface and
+// a parent DOM selector. parentSelector works identically to JavaScript's document.querySelector(selector)
+// call.
+func (*viewsType) AppendChild(view View, parentSelector string) error {
 	//Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
-	//Get our view HTML given the model
-	viewHTML := view.GetHTML(model)
+	//Get our view HTML
+	viewHTML := view.GetHTML()
 	if viewHTML == "" {
 		return nil
 	}
@@ -52,22 +53,20 @@ func (*viewsType) AppendChild(view View, model Model, parentSelector string) err
 	return nil
 }
 
-// SetOnlyChild clears the current contents of the parent DOM element and sets the view as its only child.
-// It takes a View interface, a Model provided to the view and a parent DOM selector.
-// Parent selector works identically to JavaScript's document.querySelector(selector) call.
-func (*viewsType) SetOnlyChild(view View, model Model, parentSelector string) error {
+// SetInnerHTML replaces the current contents of the parent DOM element.
+// It takes a View interface and a parent DOM selector. parentSelector works identically to
+// JavaScript's document.querySelector(selector) call.
+func (*viewsType) SetInnerHTML(view View, parentSelector string) error {
 	//Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
-	//Get our view HTML given the model
-	viewHTML := view.GetHTML(model)
+	//Get our view HTML
+	viewHTML := view.GetHTML()
 	if viewHTML == "" {
 		return nil
 	}
-
-	fmt.Println(viewHTML)
 
 	//Create our view DOM element
 	viewEl, err := createViewElement(viewHTML, view.OuterTag(), view.Id())
@@ -84,7 +83,6 @@ func (*viewsType) SetOnlyChild(view View, model Model, parentSelector string) er
 func (*viewsType) Remove(view View) bool {
 	viewElRef, found := viewsIndex[view.Id()]
 	if found {
-		fmt.Printf("found view element %s\n", view.Id())
 		(*viewElRef).ParentElement().RemoveChild(*viewElRef)
 		delete(viewsIndex, view.Id())
 		return true
@@ -103,8 +101,8 @@ func createViewElement(innerHTML string, outerTag string, viewId string) (dom.El
 	//Create our element to append, with outer tag
 	var el dom.Element
 	//Create unique element ID for the view element and add it to global map of existent view elements viewsIndex
-	if cachedEl, found := viewsIndex[viewId]; found {
-		el = (*cachedEl)
+	if indexedEl, found := viewsIndex[viewId]; found {
+		el = (*indexedEl)
 	} else {
 		el = document.CreateElement(outerTag)
 	}
