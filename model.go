@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"honnef.co/go/js/xhr"
+	"net/url"
 	"reflect"
 )
 
@@ -52,10 +53,10 @@ func (*modelsType) GetAll(models interface{}) error {
 	return nil
 }
 
-// Delete expects a pointer some concrete type which implements Model (e.g., *[]*Todo).
-// DELETE will send a DELETE request to a RESTful server. It expects an empty json
+// Delete expects a pointer some concrete type which implements Model (e.g., *Todo).
+// It will send a DELETE request to a RESTful server. It expects an empty json
 // object from the server if the request was successful, and will not attempt to do anything
-// with the response. It will use the UrlRoot() and GetId() methods of the models to determine
+// with the response. It will use the UrlRoot() and GetId() methods of the model to determine
 // which url to send the DELETE request to. Typically, the full url will look something
 // like "http://hostname.com/todos/123"
 func (*modelsType) Delete(model Model) error {
@@ -66,6 +67,40 @@ func (*modelsType) Delete(model Model) error {
 	err := req.Send(nil)
 	if err != nil {
 		return fmt.Errorf("Something went wrong with DELETE request to %s. %s", fullURL, err.Error())
+	}
+	return nil
+}
+
+// Create expects a pointer some concrete type which implements Model (e.g., *Todo).
+// It will send a POST request to the RESTful server. It expects a JSON containing the
+// created object from the server if the request was successful, and will set the fields of
+// model with the data in the response object. It will use the UrlRoot() method of
+// the model to determine which url to send the POST request to.
+func (*modelsType) Create(model Model) error {
+	fullUrl := model.UrlRoot()
+	bodyString := ""
+
+	//TODO: Do stronger type checking to prevent errors
+	modelValPtr := reflect.ValueOf(model)
+	modelVal := modelValPtr.Elem()
+	modelValType := modelVal.Type()
+	for i := 0; i < modelValType.NumField(); i++ {
+		field := modelVal.Field(i)
+		fieldName := modelValType.Field(i).Name
+		value := fmt.Sprint(field.Interface())
+		bodyString += fieldName + "=" + url.QueryEscape(value)
+		if i != modelValType.NumField()-1 {
+			bodyString += "&"
+		}
+	}
+
+	req := xhr.NewRequest("POST", fullUrl)
+	req.Timeout = 1000 //one second, in milliseconds
+	req.ResponseType = "text"
+	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+	err := req.Send(bodyString)
+	if err != nil {
+		return err
 	}
 	return nil
 }
