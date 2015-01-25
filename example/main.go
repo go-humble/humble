@@ -28,24 +28,24 @@ func main() {
 	r.HandleFunc("/", func(params map[string]string) {
 		v.Name = "Home"
 		if err := humble.Views.SetInnerHTML(v, "#current-page"); err != nil {
-			console.Error(err)
+			panic(err)
 		}
 	})
 	r.HandleFunc("/about", func(params map[string]string) {
 		v.Name = "About"
-		if err := humble.Views.SetInnerHTML(v, "#current-page"); err != nil {
-			console.Error(err)
+		if err := humble.Views.Update(v); err != nil {
+			panic(err)
 		}
 	})
 	r.HandleFunc("/faq", func(params map[string]string) {
 		v.Name = "FAQ"
 		if err := humble.Views.SetInnerHTML(v, "#current-page"); err != nil {
-			console.Error(err)
+			panic(err)
 		}
 	})
 	r.HandleFunc("/remove", func(params map[string]string) {
-		if ok := humble.Views.Remove(v); !ok {
-			console.Error("Not Ok!")
+		if err := humble.Views.Remove(v); err != nil {
+			panic(err)
 		}
 	})
 
