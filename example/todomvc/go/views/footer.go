@@ -3,11 +3,13 @@ package views
 import (
 	"fmt"
 	"github.com/gophergala/humble"
+	"github.com/gophergala/humble/view"
+	"honnef.co/go/js/dom"
+	"strings"
 )
 
 type Footer struct {
 	humble.Identifier
-	Remaining int
 	TodoViews *[]*Todo
 }
 
@@ -18,7 +20,7 @@ func (f *Footer) RenderHTML() string {
 			</span>
 			<ul id="filters">
 				<li>
-					<a class="selected" href="#/">All</a>
+					<a href="#/">All</a>
 				</li>
 				<li>
 					<a href="#/active">Active</a>
@@ -33,6 +35,13 @@ func (f *Footer) OuterTag() string {
 	return "div"
 }
 
+func (f *Footer) OnLoad() error {
+	if err := f.setSelected(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (f *Footer) countRemaining() int {
 	count := 0
 	if f.TodoViews == nil {
@@ -44,4 +53,22 @@ func (f *Footer) countRemaining() int {
 		}
 	}
 	return count
+}
+
+func (f *Footer) setSelected() error {
+	hash := dom.GetWindow().Location().Hash
+	links, err := view.QuerySelectorAll(f, "#filters li a")
+	if err != nil {
+		return err
+	}
+	for _, linkEl := range links {
+		if linkEl.GetAttribute("href") == hash {
+			linkEl.SetAttribute("class", linkEl.GetAttribute("class")+" selected")
+		} else {
+			oldClass := linkEl.GetAttribute("class")
+			newClass := strings.Replace(oldClass, "selected", "", 1)
+			linkEl.SetAttribute("class", newClass)
+		}
+	}
+	return nil
 }

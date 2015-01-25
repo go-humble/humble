@@ -54,7 +54,7 @@ func (a *App) RenderHTML() string {
 		<p>Part of <a href="http://todomvc.com">TodoMVC</a>
 		</p>
 	</footer>
-	<script src="js/app.js"></script>`, len(a.Children))
+	<script src="js/app.js"></script>`)
 }
 
 func (v *App) OuterTag() string {
@@ -63,6 +63,10 @@ func (v *App) OuterTag() string {
 
 func (v *App) InitChildren(todos []*models.Todo) {
 	//Create individual todo views
+	v.Children = []*Todo{}
+	if v.Footer != nil {
+		v.Footer.TodoViews = &v.Children
+	}
 	for _, todo := range todos {
 		todoView := &Todo{
 			Model:  todo,
@@ -94,11 +98,11 @@ func (v *App) OnLoad() error {
 
 	// Set up the footer view
 	v.Footer = &Footer{}
+	v.Footer.TodoViews = &v.Children
 
 	if len(v.Children) > 0 {
 		showTodosContainer()
 		showTodosFooter()
-		v.Footer.TodoViews = &v.Children
 		view.AppendToParentHTML(v.Footer, "#footer")
 	}
 
