@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gophergala/go_by_the_fireplace/humble"
+	"github.com/gophergala/humble"
 	"honnef.co/go/js/console"
 )
 
