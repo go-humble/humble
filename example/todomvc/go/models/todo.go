@@ -24,3 +24,10 @@ func (t *Todo) CheckedStr() string {
 	}
 	return ""
 }
+
+func (t *Todo) CompletedStr() string {
+	if t.IsCompleted {
+		return "completed"
+	}
+	return ""
+}

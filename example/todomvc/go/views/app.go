@@ -84,16 +84,14 @@ func (v *App) OnLoad() error {
 			Model: todo,
 		}
 		if err := view.AppendToParentHTML(todoView, todoListSelector); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
-	err = view.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp)
-	if err != nil {
+	if err := view.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp); err != nil {
 		return err
 	}
-	err = view.AddListener(v, toggleBtnSelector, "click", v.toggleBtnClicked)
-	if err != nil {
+	if err := view.AddListener(v, toggleBtnSelector, "click", v.toggleBtnClicked); err != nil {
 		return err
 	}
 

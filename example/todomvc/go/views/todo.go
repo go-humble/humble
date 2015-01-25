@@ -15,36 +15,30 @@ type Todo struct {
 }
 
 func (t *Todo) RenderHTML() string {
-	return fmt.Sprintf(`<li class="todo-list-item">
+	return fmt.Sprintf(`<li class="todo-list-item %s">
 		<input class="toggle" type="checkbox" %s>
 		<label class="todo-label">%s</label>
 		<button class="destroy"></button>
 		<input class="edit" onfocus="this.value = this.value;" value="%s">
 		</li>`,
-		t.Model.CheckedStr(), t.Model.Title, t.Model.Title)
+		t.Model.CompletedStr(), t.Model.CheckedStr(), t.Model.Title, t.Model.Title)
 }
 
 func (t *Todo) OnLoad() error {
-	var err error
-	err = view.AddListener(t, "button.destroy", "click", t.deleteButtonClicked)
-	if err != nil {
-		panic(err)
+	if err := view.AddListener(t, "button.destroy", "click", t.deleteButtonClicked); err != nil {
+		return err
 	}
-	err = view.AddListener(t, "label.todo-label", "dblclick", t.todoDoubleClick)
-	if err != nil {
-		panic(err)
+	if err := view.AddListener(t, "label.todo-label", "dblclick", t.todoDoubleClick); err != nil {
+		return err
 	}
-	err = view.AddListener(t, "input.edit", "keyup", t.todoEditKeyUp)
-	if err != nil {
-		panic(err)
+	if err := view.AddListener(t, "input.edit", "keyup", t.todoEditKeyUp); err != nil {
+		return err
 	}
-	err = view.AddListener(t, "input.toggle", "click", t.checkboxClicked)
-	if err != nil {
-		panic(err)
+	if err := view.AddListener(t, "input.toggle", "click", t.checkboxClicked); err != nil {
+		return err
 	}
-	err = view.AddListener(t, "input.edit", "blur", t.todoEditBlurred)
-	if err != nil {
-		panic(err)
+	if err := view.AddListener(t, "input.edit", "blur", t.todoEditBlurred); err != nil {
+		return err
 	}
 	return nil
 }
@@ -136,9 +130,10 @@ func (t *Todo) deleteButtonClicked(dom.Event) {
 
 func (t *Todo) checkboxClicked(event dom.Event) {
 	isChecked := event.Target().(*dom.HTMLInputElement).Checked
+	fmt.Println(isChecked)
 	t.Model.IsCompleted = isChecked
 	if err := model.Update(t.Model); err != nil {
 		panic(err)
 	}
-
+	view.Update(t)
 }
