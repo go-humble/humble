@@ -77,10 +77,10 @@ func (*modelsType) Delete(model Model) error {
 // model with the data in the response object. It will use the UrlRoot() method of
 // the model to determine which url to send the POST request to.
 func (*modelsType) Create(model Model) error {
-	fullUrl := model.UrlRoot()
+	fullURL := model.UrlRoot()
 	bodyString := ""
-
-	//TODO: Do stronger type checking to prevent errors
+	// TODO: Do stronger type checking to prevent errors
+	//Use reflect to identify fields of our model and convert to URL-encoded formdata string
 	modelValPtr := reflect.ValueOf(model)
 	modelVal := modelValPtr.Elem()
 	modelValType := modelVal.Type()
@@ -93,8 +93,8 @@ func (*modelsType) Create(model Model) error {
 			bodyString += "&"
 		}
 	}
-	//Create our request
-	req := xhr.NewRequest("POST", fullUrl)
+	// Create our x-www-form-urlencoded POST request
+	req := xhr.NewRequest("POST", fullURL)
 	req.Timeout = 1000 //one second, in milliseconds
 	req.ResponseType = "text"
 	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
@@ -103,7 +103,43 @@ func (*modelsType) Create(model Model) error {
 	if err != nil {
 		return err
 	}
-	//Unmarshal our response object into our model
+	// Unmarshal our server response object into our model
+	err = json.Unmarshal([]byte(req.Response.String()), model)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
+	}
+	return nil
+}
+
+func (*modelsType) Update(model Model) error {
+	//Set our request URL to be root URL/Id, eg. example.com/api/todos/4
+	fullURL := model.UrlRoot() + "/" + model.GetId()
+	bodyString := ""
+	// TODO: Do stronger type checking to prevent errors
+	//Use reflect to identify fields of our model and convert to URL-encoded formdata string
+	modelValPtr := reflect.ValueOf(model)
+	modelVal := modelValPtr.Elem()
+	modelValType := modelVal.Type()
+	for i := 0; i < modelValType.NumField(); i++ {
+		field := modelVal.Field(i)
+		fieldName := modelValType.Field(i).Name
+		value := fmt.Sprint(field.Interface())
+		bodyString += fieldName + "=" + url.QueryEscape(value)
+		if i != modelValType.NumField()-1 {
+			bodyString += "&"
+		}
+	}
+	// Create our x-www-form-urlencoded PUT request
+	req := xhr.NewRequest("PUT", fullURL)
+	req.Timeout = 1000 // one second, in milliseconds
+	req.ResponseType = "text"
+	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+	// Send our request
+	err := req.Send(bodyString)
+	if err != nil {
+		return fmt.Errorf("Something went wrong with PUT request to %s. %s", fullURL, err.Error())
+	}
+	// Unmarshal our server response object into our model
 	err = json.Unmarshal([]byte(req.Response.String()), model)
 	if err != nil {
 		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
