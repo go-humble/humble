@@ -1,15 +1,5 @@
 package humble
 
-// View is the interface that must be implemented by all views.
-// GetHTML() returns the HTML to be inserted into the DOM.
-// Id() sets the unique ID of the View object.
-//// To be given a random unique id, simply include humble.Identifer as an anonymous field ie.
-//// type ExampleView struct {
-//// 	humble.Identifier
-//// }
-// OuterTag() sets the tag name for the outer container that will contain HTML returned from getHTML().
-//// This is required, but can be simply "div" or "span" for a semantically neutral HTML element.
-
 import (
 	"fmt"
 	"github.com/gopherjs/gopherjs/js"
@@ -17,9 +7,18 @@ import (
 	"regexp"
 )
 
+// View is the interface that must be implemented by all views.
+// GetHTML() returns the HTML to be inserted into the DOM.
+// GetId() sets the unique ID of the View object.
+//// To be given a random unique id, simply include humble.Identifer as an anonymous field ie.
+//// type ExampleView struct {
+//// 	humble.Identifier
+//// }
+// OuterTag() sets the tag name for the outer container that will contain HTML returned from getHTML().
+//// This is required, but can be simply "div" or "span" for a semantically neutral HTML element.
 type View interface {
 	GetHTML() string
-	Id() string
+	GetId() string
 	OuterTag() string
 }
 
@@ -81,7 +80,7 @@ func (*viewsType) ReplaceParentHTML(view View, parentSelector string) error {
 // Returns an error if the dom element for this view does not exist.
 func (*viewsType) Update(view View) error {
 	html := view.GetHTML()
-	el, err := getElementByViewId(view.Id())
+	el, err := getElementByViewId(view.GetId())
 	if err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func (*viewsType) Update(view View) error {
 
 // Remove removes a view element from the DOM, returning true if successful, false otherwise
 func (*viewsType) Remove(view View) error {
-	viewEl, err := getElementByViewId(view.Id())
+	viewEl, err := getElementByViewId(view.GetId())
 	if err != nil {
 		return err
 	}
@@ -128,11 +127,11 @@ func createViewElement(view View) (dom.Element, error) {
 	viewHTML := view.GetHTML()
 	//Check if view element exists in global map, otherwise create it
 	var el dom.Element
-	if indexedEl, err := getElementByViewId(view.Id()); err != nil {
+	if indexedEl, err := getElementByViewId(view.GetId()); err != nil {
 		if _, notFound := err.(ViewElementNotFoundError); notFound {
 			// The view was not found in the DOM. We need to create it
 			el = document.CreateElement(view.OuterTag())
-			viewsIndex[view.Id()] = el
+			viewsIndex[view.GetId()] = el
 		} else {
 			// For any other type of error, return it.
 			return nil, err
@@ -143,7 +142,7 @@ func createViewElement(view View) (dom.Element, error) {
 	el.SetInnerHTML(viewHTML)
 	//We set attribute data-humble-view-id on outer container to simplify debugging and as a secondary means of
 	//selecting our View element from the DOM
-	el.SetAttribute("data-humble-view-id", view.Id())
+	el.SetAttribute("data-humble-view-id", view.GetId())
 
 	return el, nil
 }

@@ -7,14 +7,14 @@ import (
 )
 
 type Identifier struct {
-	id string
+	Id string
 }
 
-func (i *Identifier) Id() string {
-	if i.id == "" {
-		i.id = generateRandomId()
+func (i *Identifier) GetId() string {
+	if i.Id == "" {
+		i.Id = generateRandomId()
 	}
-	return i.id
+	return i.Id
 }
 
 // generateRandomId generates a random string that is more or less
