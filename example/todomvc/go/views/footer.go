@@ -28,7 +28,8 @@ func (f *Footer) RenderHTML() string {
 				<li>
 					<a href="#/completed">Completed</a>
 				</li>
-			</ul>`, f.countRemaining())
+			</ul>
+			<button id="clear-completed">Clear completed (%d)</button>`, f.countRemaining(), f.countCompleted())
 }
 
 func (f *Footer) OuterTag() string {
@@ -38,6 +39,11 @@ func (f *Footer) OuterTag() string {
 func (f *Footer) OnLoad() error {
 	if err := f.setSelected(); err != nil {
 		return err
+	}
+	if f.countCompleted() == 0 {
+		f.hideClearCompleted()
+	} else {
+		f.showClearCompleted()
 	}
 	return nil
 }
@@ -49,6 +55,19 @@ func (f *Footer) countRemaining() int {
 	}
 	for _, todoView := range *f.TodoViews {
 		if !todoView.Model.IsCompleted {
+			count++
+		}
+	}
+	return count
+}
+
+func (f *Footer) countCompleted() int {
+	count := 0
+	if f.TodoViews == nil {
+		return 0
+	}
+	for _, todoView := range *f.TodoViews {
+		if todoView.Model.IsCompleted {
 			count++
 		}
 	}
@@ -71,4 +90,20 @@ func (f *Footer) setSelected() error {
 		}
 	}
 	return nil
+}
+
+func (f *Footer) showClearCompleted() {
+	clrCompletedEl, err := view.QuerySelector(f, "button#clear-completed")
+	if err != nil {
+		panic(err)
+	}
+	clrCompletedEl.SetAttribute("style", "display: block;")
+}
+
+func (f *Footer) hideClearCompleted() {
+	clrCompletedEl, err := view.QuerySelector(f, "button#clear-completed")
+	if err != nil {
+		panic(err)
+	}
+	clrCompletedEl.SetAttribute("style", "display: none;")
 }
