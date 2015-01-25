@@ -1,4 +1,4 @@
-package humble
+package router
 
 import (
 	"github.com/gopherjs/gopherjs/js"
@@ -17,8 +17,8 @@ type Router struct {
 // route. A Handler takes the url parameters as an argument.
 type Handler func(params map[string]string)
 
-// NewRouter creates and returns a new router
-func NewRouter() *Router {
+// New creates and returns a new router
+func New() *Router {
 	return &Router{
 		routes: []*route{},
 	}

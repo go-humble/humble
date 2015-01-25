@@ -1,7 +1,8 @@
-package humble
+package view
 
 import (
 	"fmt"
+	"github.com/gophergala/humble"
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/dom"
 	"regexp"
@@ -32,10 +33,7 @@ type OnLoader interface {
 // to some javascript event.
 type Listener func(dom.Event)
 
-type viewsType struct{}
-
 var viewsIndex = map[string]dom.Element{}
-var Views = viewsType{}
 var document dom.Document
 
 func init() {
@@ -49,7 +47,7 @@ func init() {
 // AppendToParentHTML appends a view to a parent DOM element. It takes a View interface and
 // a parent DOM selector. parentSelector works identically to JavaScript's document.querySelector(selector)
 // call. After the view's element is added to the DOM, AppendToParentHTML calls view.OnLoad if it is defined.
-func (*viewsType) AppendToParentHTML(view View, parentSelector string) error {
+func AppendToParentHTML(view View, parentSelector string) error {
 	// Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
@@ -74,7 +72,7 @@ func (*viewsType) AppendToParentHTML(view View, parentSelector string) error {
 // It takes a View interface and a parent DOM selector. parentSelector works identically to
 // JavaScript's document.querySelector(selector) call. After the view's element is added to the
 // DOM, ReplaceParentHTML calls view.OnLoad if it is defined.
-func (*viewsType) ReplaceParentHTML(view View, parentSelector string) error {
+func ReplaceParentHTML(view View, parentSelector string) error {
 	// Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
@@ -99,7 +97,7 @@ func (*viewsType) ReplaceParentHTML(view View, parentSelector string) error {
 // Update updates a view in place by calling SetInnerHTML on the view's element.
 // Returns an error if the dom element for this view does not exist. After the view's
 // element is added to the DOM, Update calls view.OnLoad if it is defined.
-func (*viewsType) Update(view View) error {
+func Update(view View) error {
 	html := view.RenderHTML()
 	el, err := getElementByViewId(view.GetId())
 	if err != nil {
@@ -115,7 +113,7 @@ func (*viewsType) Update(view View) error {
 }
 
 // Remove removes a view element from the DOM, returning true if successful, false otherwise
-func (*viewsType) Remove(view View) error {
+func Remove(view View) error {
 	viewEl, err := getElementByViewId(view.GetId())
 	if err != nil {
 		return err
@@ -134,7 +132,7 @@ func getElementByViewId(viewId string) (dom.Element, error) {
 		selector := fmt.Sprintf("[data-humble-view-id='%s']", viewId)
 		el := document.QuerySelector(selector)
 		if el == nil {
-			return nil, ViewElementNotFoundError{viewId: viewId}
+			return nil, humble.NewViewElementNotFoundError(viewId)
 		}
 		viewsIndex[viewId] = el //Add our element to index since it exists in DOM but was not found in index
 		return el, nil
@@ -154,7 +152,7 @@ func createViewElement(view View) (dom.Element, error) {
 	//Check if view element exists in global map, otherwise create it
 	var el dom.Element
 	if indexedEl, err := getElementByViewId(view.GetId()); err != nil {
-		if _, notFound := err.(ViewElementNotFoundError); notFound {
+		if _, notFound := err.(humble.ViewElementNotFoundError); notFound {
 			// The view was not found in the DOM. We need to create it
 			el = document.CreateElement(view.OuterTag())
 			viewsIndex[view.GetId()] = el
@@ -197,7 +195,7 @@ func viewOnLoad(v View) error {
 
 // QuerySelector takes a selector string and returns the first matching element within the given view as a dom.Element.
 // Will return an error if no matching element is found.
-func (*viewsType) QuerySelector(view View, selector string) (dom.Element, error) {
+func QuerySelector(view View, selector string) (dom.Element, error) {
 	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), selector)
 	targetEls := document.QuerySelector(fullSelector)
 	if targetEls == nil {
@@ -208,7 +206,7 @@ func (*viewsType) QuerySelector(view View, selector string) (dom.Element, error)
 
 // QuerySelectorAll takes a selector string and returns all matching elements within the given view as a []dom.Element.
 // Will return an error if no matching elements are found.
-func (*viewsType) QuerySelectorAll(view View, selector string) ([]dom.Element, error) {
+func QuerySelectorAll(view View, selector string) ([]dom.Element, error) {
 	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), selector)
 	targetEls := document.QuerySelectorAll(fullSelector)
 	if len(targetEls) == 0 {
@@ -223,12 +221,12 @@ func (*viewsType) QuerySelectorAll(view View, selector string) ([]dom.Element, e
 // listen for events on elements outside of the view's element.
 // Example:
 // humble.AddListener(todoView, "button.destroy", "click", func(dom.Event) {
-//		if err := humble.Views.Remove(todoView); err != nil {
+//		if err := views.Remove(todoView); err != nil {
 // 		...
 // 	}
 // })
-func (*viewsType) AddListener(view View, childSelector string, eventName string, listener Listener) error {
-	targetEls, err := Views.QuerySelectorAll(view, childSelector)
+func AddListener(view View, childSelector string, eventName string, listener Listener) error {
+	targetEls, err := QuerySelectorAll(view, childSelector)
 	if err != nil {
 		return err
 	}

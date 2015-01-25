@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/gophergala/humble"
 	"github.com/gophergala/humble/example/todomvc/go/models"
 	"github.com/gophergala/humble/example/todomvc/go/views"
+	"github.com/gophergala/humble/model"
+	"github.com/gophergala/humble/router"
+	"github.com/gophergala/humble/view"
 	"honnef.co/go/js/console"
 	"honnef.co/go/js/dom"
 )
@@ -29,18 +31,18 @@ func init() {
 func main() {
 	console.Log("Starting...")
 
-	r := humble.NewRouter()
+	r := router.New()
 	r.HandleFunc("/", func(params map[string]string) {
 		// Get existing todos
 		todos := []*models.Todo{}
-		if err := humble.Models.ReadAll(&todos); err != nil {
+		if err := model.ReadAll(&todos); err != nil {
 			panic(err)
 		}
 		//Start main app view, appView
 		appView := &views.App{
 			Model: todos,
 		}
-		if err := humble.Views.AppendToParentHTML(appView, bodySelector); err != nil {
+		if err := view.AppendToParentHTML(appView, bodySelector); err != nil {
 			panic(err)
 		}
 	})

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/gophergala/humble"
 	"github.com/gophergala/humble/example/todomvc/go/models"
+	"github.com/gophergala/humble/model"
+	"github.com/gophergala/humble/view"
 	"honnef.co/go/js/dom"
 )
 
@@ -59,15 +61,15 @@ func (v *App) OuterTag() string {
 
 func (v *App) OnLoad() error {
 	var err error
-	elements.todoList, err = humble.Views.QuerySelector(v, todoListSelector)
+	elements.todoList, err = view.QuerySelector(v, todoListSelector)
 	if err != nil {
 		return err
 	}
-	elements.newTodo, err = humble.Views.QuerySelector(v, newTodoSelector)
+	elements.newTodo, err = view.QuerySelector(v, newTodoSelector)
 	if err != nil {
 		return err
 	}
-	elements.toggleBtn, err = humble.Views.QuerySelector(v, toggleBtnSelector)
+	elements.toggleBtn, err = view.QuerySelector(v, toggleBtnSelector)
 	if err != nil {
 		return err
 	}
@@ -78,19 +80,19 @@ func (v *App) OnLoad() error {
 
 	//Create individual todo views
 	for _, todo := range v.Model {
-		view := &Todo{
+		todoView := &Todo{
 			Model: todo,
 		}
-		if err := humble.Views.AppendToParentHTML(view, todoListSelector); err != nil {
+		if err := view.AppendToParentHTML(todoView, todoListSelector); err != nil {
 			panic(err)
 		}
 	}
 
-	err = humble.Views.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp)
+	err = view.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp)
 	if err != nil {
 		return err
 	}
-	err = humble.Views.AddListener(v, toggleBtnSelector, "click", v.toggleBtnClicked)
+	err = view.AddListener(v, toggleBtnSelector, "click", v.toggleBtnClicked)
 	if err != nil {
 		return err
 	}
@@ -121,13 +123,13 @@ func (v *App) newTodoKeyUp(event dom.Event) {
 		Title:       title,
 		IsCompleted: false,
 	}
-	if err := humble.Models.Create(m); err != nil {
+	if err := model.Create(m); err != nil {
 		panic(err)
 	}
-	view := &Todo{
+	todoView := &Todo{
 		Model: m,
 	}
-	if err := humble.Views.AppendToParentHTML(view, todoListSelector); err != nil {
+	if err := view.AppendToParentHTML(todoView, todoListSelector); err != nil {
 		panic(err)
 	}
 	//Clear newTodo text input

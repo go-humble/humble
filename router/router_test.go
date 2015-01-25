@@ -1,4 +1,4 @@
-package humble
+package router
 
 import (
 	"reflect"
@@ -76,7 +76,7 @@ func TestRouter(t *testing.T) {
 	for _, tc := range routeTestCases {
 		gotPath := ""
 		gotParams := map[string]string{}
-		r := NewRouter()
+		r := New()
 		for _, path := range tc.paths {
 			handler := generateTestHandler(path, &gotPath, &gotParams)
 			r.HandleFunc(path, handler)
