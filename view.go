@@ -28,6 +28,10 @@ type OnLoader interface {
 	OnLoad() error
 }
 
+// Listener is a callback function that will be triggered in response
+// to some javascript event.
+type Listener func(dom.Event)
+
 type viewsType struct{}
 
 var viewsIndex = map[string]dom.Element{}
@@ -186,6 +190,28 @@ func viewOnLoad(v View) error {
 		if err := onLoader.OnLoad(); err != nil {
 			return fmt.Errorf("Error in %T.OnLoad: %s", v, err.Error())
 		}
+	}
+	return nil
+}
+
+// AddListener adds an event listener to the element inside the view's element identified by childSelector.
+// It expects a Listener as an argument, which will be called when the event is triggered. When this
+// calls el.AddEventListener it sets the useCapture option to false. AddListener cannot be used to
+// listen for events on elements outside of the view's element.
+// Example:
+// humble.AddListener(todoView, "button.destroy", "click", func(dom.Event) {
+//		if err := humble.Views.Remove(todoView); err != nil {
+// 		...
+// 	}
+// })
+func (*viewsType) AddListener(view View, childSelector string, eventName string, listener Listener) error {
+	fullSelector := fmt.Sprintf("[data-humble-view-id='%s'] %s", view.GetId(), childSelector)
+	targetEls := document.QuerySelectorAll(fullSelector)
+	if len(targetEls) == 0 {
+		return fmt.Errorf("Could not find element with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
+	}
+	for _, el := range targetEls {
+		el.AddEventListener(eventName, false, listener)
 	}
 	return nil
 }

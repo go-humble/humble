@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gophergala/humble"
 	"github.com/gophergala/humble/example/todomvc/go/models"
+	"honnef.co/go/js/dom"
 )
 
 type Todo struct {
@@ -22,10 +23,18 @@ func (t *Todo) GetHTML() string {
 }
 
 func (t *Todo) OnLoad() error {
-	fmt.Println("OnLoad() was called")
+	if err := humble.Views.AddListener(t, "button.destroy", "click", t.deleteButtonClicked); err != nil {
+		panic(err)
+	}
 	return nil
 }
 
 func (t *Todo) OuterTag() string {
 	return "div"
+}
+
+func (t *Todo) deleteButtonClicked(dom.Event) {
+	if err := humble.Views.Remove(t); err != nil {
+		panic(err)
+	}
 }
