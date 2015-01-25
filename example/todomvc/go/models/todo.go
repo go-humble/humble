@@ -14,7 +14,7 @@ func (t *Todo) GetId() string {
 	return strconv.Itoa(t.Id)
 }
 
-func (t *Todo) UrlRoot() string {
+func (t *Todo) RootURL() string {
 	return "http://localhost:3000/todos"
 }
 

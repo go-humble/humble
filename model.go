@@ -10,7 +10,7 @@ import (
 
 type Model interface {
 	GetId() string
-	UrlRoot() string
+	RootURL() string
 }
 
 type modelsType struct{}
@@ -21,7 +21,7 @@ var Models = modelsType{}
 // which implements Model (e.g., *[]*Todo). GetAll will send a GET request to
 // a RESTful server and scan the results into models. It expects a json array
 // of json objects from the server, where each object represents a single Model
-// of some concrete type. It will use the UrlRoot() method of the models to
+// of some concrete type. It will use the RootURL() method of the models to
 // figure out which url to send the GET request to.
 func (*modelsType) ReadAll(models interface{}) error {
 	// We expect some pointer to a slice of models. Like *[]Todo
@@ -36,7 +36,7 @@ func (*modelsType) ReadAll(models interface{}) error {
 	newModelInterface := newModelVal.Interface()
 	newModel := newModelInterface.(Model)
 	// TODO: check for a failed type assertion!
-	urlRoot := newModel.UrlRoot()
+	urlRoot := newModel.RootURL()
 
 	req := xhr.NewRequest("GET", urlRoot)
 	req.Timeout = 1000 // one second, in milliseconds
@@ -56,11 +56,11 @@ func (*modelsType) ReadAll(models interface{}) error {
 // Delete expects a pointer some concrete type which implements Model (e.g., *Todo).
 // It will send a DELETE request to a RESTful server. It expects an empty json
 // object from the server if the request was successful, and will not attempt to do anything
-// with the response. It will use the UrlRoot() and GetId() methods of the model to determine
+// with the response. It will use the RootURL() and GetId() methods of the model to determine
 // which url to send the DELETE request to. Typically, the full url will look something
 // like "http://hostname.com/todos/123"
 func (*modelsType) Delete(model Model) error {
-	fullURL := model.UrlRoot() + "/" + model.GetId()
+	fullURL := model.RootURL() + "/" + model.GetId()
 	req := xhr.NewRequest("DELETE", fullURL)
 	req.Timeout = 1000 // one second, in milliseconds
 	req.ResponseType = "text"
@@ -74,10 +74,10 @@ func (*modelsType) Delete(model Model) error {
 // Create expects a pointer some concrete type which implements Model (e.g., *Todo).
 // It will send a POST request to the RESTful server. It expects a JSON containing the
 // created object from the server if the request was successful, and will set the fields of
-// model with the data in the response object. It will use the UrlRoot() method of
+// model with the data in the response object. It will use the RootURL() method of
 // the model to determine which url to send the POST request to.
 func (*modelsType) Create(model Model) error {
-	fullURL := model.UrlRoot()
+	fullURL := model.RootURL()
 	bodyString := ""
 	// TODO: Do stronger type checking to prevent errors
 	//Use reflect to identify fields of our model and convert to URL-encoded formdata string
@@ -113,7 +113,7 @@ func (*modelsType) Create(model Model) error {
 
 func (*modelsType) Update(model Model) error {
 	//Set our request URL to be root URL/Id, eg. example.com/api/todos/4
-	fullURL := model.UrlRoot() + "/" + model.GetId()
+	fullURL := model.RootURL() + "/" + model.GetId()
 	bodyString := ""
 	// TODO: Do stronger type checking to prevent errors
 	//Use reflect to identify fields of our model and convert to URL-encoded formdata string
