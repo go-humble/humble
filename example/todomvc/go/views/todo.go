@@ -23,7 +23,8 @@ func (t *Todo) GetHTML() string {
 }
 
 func (t *Todo) OnLoad() error {
-	if err := humble.Views.AddListener(t, "button.destroy", "click", t.deleteButtonClicked); err != nil {
+	err := humble.Views.AddListener(t, "button.destroy", "click", t.deleteButtonClicked)
+	if err != nil {
 		panic(err)
 	}
 	return nil
@@ -35,6 +36,9 @@ func (t *Todo) OuterTag() string {
 
 func (t *Todo) deleteButtonClicked(dom.Event) {
 	if err := humble.Views.Remove(t); err != nil {
+		panic(err)
+	}
+	if err := humble.Models.Delete(t.Model); err != nil {
 		panic(err)
 	}
 }

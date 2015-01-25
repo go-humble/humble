@@ -187,7 +187,8 @@ func checkOuterTag(tag string) error {
 
 func viewOnLoad(v View) error {
 	if onLoader, hasOnLoad := v.(OnLoader); hasOnLoad {
-		if err := onLoader.OnLoad(); err != nil {
+		err := onLoader.OnLoad() //gopherjs:blocking
+		if err != nil {
 			return fmt.Errorf("Error in %T.OnLoad: %s", v, err.Error())
 		}
 	}
@@ -211,7 +212,15 @@ func (*viewsType) AddListener(view View, childSelector string, eventName string,
 		return fmt.Errorf("Could not find element with childSelector: `%s` inside of element for %T. Full selector was: `%s`", childSelector, view, fullSelector)
 	}
 	for _, el := range targetEls {
-		el.AddEventListener(eventName, false, listener)
+		el.AddEventListener(eventName, false, nonBlockingListener(listener))
 	}
 	return nil
+}
+
+func nonBlockingListener(listener Listener) Listener {
+	return func(ev dom.Event) {
+		go func() {
+			listener(ev) //gopherjs:blocking
+		}()
+	}
 }
