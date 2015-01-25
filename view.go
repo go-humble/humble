@@ -217,6 +217,8 @@ func (*viewsType) AddListener(view View, childSelector string, eventName string,
 	return nil
 }
 
+// nonBlockingListener takes care of wrapping our event listener functions with a goroutine to make these usually
+// blocking calls non-blocking, as required by GopherJS
 func nonBlockingListener(listener Listener) Listener {
 	return func(ev dom.Event) {
 		go func() {
