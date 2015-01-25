@@ -22,6 +22,12 @@ type View interface {
 	OuterTag() string
 }
 
+// If a view implements OnLoader, humble will call the OnLoad method
+// whenver the view's element is added to (or updated in) the DOM.
+type OnLoader interface {
+	OnLoad() error
+}
+
 type viewsType struct{}
 
 var viewsIndex = map[string]dom.Element{}
@@ -38,46 +44,57 @@ func init() {
 
 // AppendToParentHTML appends a view to a parent DOM element. It takes a View interface and
 // a parent DOM selector. parentSelector works identically to JavaScript's document.querySelector(selector)
-// call.
+// call. After the view's element is added to the DOM, AppendToParentHTML calls view.OnLoad if it is defined.
 func (*viewsType) AppendToParentHTML(view View, parentSelector string) error {
-	//Grab DOM element matching parentSelector
+	// Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
-	//Create our child DOM element
+	// Create our child DOM element
 	viewEl, err := createViewElement(view)
 	if err != nil {
 		return err
 	}
-	//Append as child to selected parent DOM element
+	// Append as child to selected parent DOM element
 	parent.AppendChild(viewEl)
 
+	// Call view.OnLoad if it is defined
+	if err := viewOnLoad(view); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ReplaceParentHTML replaces the current inner HTML of the parent DOM element with the view.
 // It takes a View interface and a parent DOM selector. parentSelector works identically to
-// JavaScript's document.querySelector(selector) call.
+// JavaScript's document.querySelector(selector) call. After the view's element is added to the
+// DOM, ReplaceParentHTML calls view.OnLoad if it is defined.
 func (*viewsType) ReplaceParentHTML(view View, parentSelector string) error {
-	//Grab DOM element matching parentSelector
+	// Grab DOM element matching parentSelector
 	parent := document.QuerySelector(parentSelector)
 	if parent == nil {
 		return fmt.Errorf("Could not find element for parentSelector: %s", parentSelector)
 	}
-	//Create our view DOM element
+	// Create our view DOM element
 	viewEl, err := createViewElement(view)
 	if err != nil {
 		return err
 	}
-	//Append as child to selected parent DOM element
+	// Append as child to selected parent DOM element
 	parent.SetInnerHTML("")
 	parent.AppendChild(viewEl)
+
+	// Call view.OnLoad if it is defined
+	if err := viewOnLoad(view); err != nil {
+		return err
+	}
 	return nil
 }
 
 // Update updates a view in place by calling SetInnerHTML on the view's element.
-// Returns an error if the dom element for this view does not exist.
+// Returns an error if the dom element for this view does not exist. After the view's
+// element is added to the DOM, Update calls view.OnLoad if it is defined.
 func (*viewsType) Update(view View) error {
 	html := view.GetHTML()
 	el, err := getElementByViewId(view.GetId())
@@ -85,6 +102,11 @@ func (*viewsType) Update(view View) error {
 		return err
 	}
 	el.SetInnerHTML(html)
+
+	// Call view.OnLoad if it is defined
+	if err := viewOnLoad(view); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -155,6 +177,15 @@ func checkOuterTag(tag string) error {
 	}
 	if !match {
 		return fmt.Errorf("Outer tag must be alphabetical characters")
+	}
+	return nil
+}
+
+func viewOnLoad(v View) error {
+	if onLoader, hasOnLoad := v.(OnLoader); hasOnLoad {
+		if err := onLoader.OnLoad(); err != nil {
+			return fmt.Errorf("Error in %T.OnLoad: %s", v, err.Error())
+		}
 	}
 	return nil
 }

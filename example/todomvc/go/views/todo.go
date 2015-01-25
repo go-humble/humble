@@ -21,6 +21,11 @@ func (t *Todo) GetHTML() string {
 		t.Model.CheckedStr(), t.Model.Title, t.Model.Title)
 }
 
+func (t *Todo) OnLoad() error {
+	fmt.Println("OnLoad() was called")
+	return nil
+}
+
 func (t *Todo) OuterTag() string {
 	return "div"
 }
