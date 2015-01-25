@@ -130,7 +130,6 @@ func (t *Todo) deleteButtonClicked(dom.Event) {
 
 func (t *Todo) checkboxClicked(event dom.Event) {
 	isChecked := event.Target().(*dom.HTMLInputElement).Checked
-	fmt.Println(isChecked)
 	t.Model.IsCompleted = isChecked
 	if err := model.Update(t.Model); err != nil {
 		panic(err)
