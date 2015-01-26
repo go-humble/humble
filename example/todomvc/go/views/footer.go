@@ -49,7 +49,9 @@ func (f *Footer) OnLoad() error {
 	}
 
 	// Add listeners
-	view.AddListener(f, "button#clear-completed", "click", f.clearCompleted)
+	if err := view.AddListener(f, "button#clear-completed", "click", f.clearCompleted); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -103,10 +105,14 @@ func (f *Footer) clearCompleted(dom.Event) {
 	if f.TodoViews == nil {
 		return
 	}
+	todosToRemove := []*Todo{}
 	for _, todoView := range *(f.TodoViews) {
 		if todoView.Model.IsCompleted {
-			todoView.remove()
+			todosToRemove = append(todosToRemove, todoView)
 		}
+	}
+	for _, todoView := range todosToRemove {
+		todoView.remove()
 	}
 }
 

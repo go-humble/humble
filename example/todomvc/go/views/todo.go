@@ -132,7 +132,6 @@ func (t *Todo) remove() {
 		panic(err)
 	}
 	t.Parent.removeChild(t)
-	fmt.Println(t.Parent.Children)
 }
 
 func (t *Todo) checkboxClicked(event dom.Event) {

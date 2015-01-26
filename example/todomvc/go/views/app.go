@@ -108,11 +108,11 @@ func (v *App) OnLoad() error {
 	// Set up the footer view
 	v.Footer = &Footer{}
 	v.Footer.TodoViews = &v.Children
+	view.ReplaceParentHTML(v.Footer, "#footer")
 
 	if len(v.Children) > 0 {
 		showTodosContainer()
 		showTodosFooter()
-		view.AppendToParentHTML(v.Footer, "#footer")
 	}
 
 	if err := view.AddListener(v, newTodoSelector, "keyup", v.newTodoKeyUp); err != nil {
@@ -128,6 +128,9 @@ func (v *App) OnLoad() error {
 func (v *App) ApplyFilter(filter TodoFilter) {
 	v.CurrentFilter = filter
 	for _, todoView := range v.Children {
+		if todoView.GetId() == "" {
+			continue
+		}
 		switch filter {
 		case FilterAll:
 			// For FilterAll we want to show all todos, regardless of whether they are complete

@@ -22,6 +22,7 @@ var (
 		newTodo   dom.Element
 		toggleBtn dom.Element
 	}{}
+	appHasLoaded = false
 )
 
 func init() {
@@ -38,33 +39,52 @@ func main() {
 	}
 	//Start main app view, appView
 	appView := &views.App{}
-	appView.InitChildren(todos)
 	if err := view.ReplaceParentHTML(appView, bodySelector); err != nil {
 		panic(err)
 	}
 
 	r := router.New()
 	r.HandleFunc("/", func(params map[string]string) {
-		appView.ApplyFilter(views.FilterAll)
+		appView.InitChildren(todos)
+		if err := view.Update(appView); err != nil {
+			panic(err)
+		}
 		if err := view.Update(appView.Footer); err != nil {
 			panic(err)
 		}
+		appView.ApplyFilter(views.FilterAll)
 	})
 	r.HandleFunc("/active", func(params map[string]string) {
-		appView.ApplyFilter(views.FilterActive)
+		appView.InitChildren(todos)
+		if err := view.Update(appView); err != nil {
+			panic(err)
+		}
 		if err := view.Update(appView.Footer); err != nil {
 			panic(err)
 		}
+		appView.ApplyFilter(views.FilterActive)
 	})
 	r.HandleFunc("/completed", func(params map[string]string) {
-		appView.ApplyFilter(views.FilterCompleted)
+		appView.InitChildren(todos)
+		if err := view.Update(appView); err != nil {
+			panic(err)
+		}
 		if err := view.Update(appView.Footer); err != nil {
 			panic(err)
 		}
+		appView.ApplyFilter(views.FilterCompleted)
 	})
 	r.HandleFunc("/completed", func(params map[string]string) {
 		console.Log("At Completed")
 	})
 	r.Start()
+
+}
+
+func initChildrenOnce(appView *views.App, todos []*models.Todo) {
+	if !appHasLoaded {
+		appHasLoaded = true
+		appView.InitChildren(todos)
+	}
 
 }
