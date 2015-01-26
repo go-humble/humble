@@ -43,7 +43,9 @@ This allows:
 
 --------------
 
-See the TodoMVC example to see how it all fits together.
+### Examples
+
+See the TodoMVC example in example/todomvc to see how it all fits together.
 
 ### License
 
