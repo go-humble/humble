@@ -11,6 +11,24 @@ We knew Go was the language we loved working in on the backend for our web appli
 - Models: 
 	- Keeping a JS object mapped to a RESTful API and performing easy CRUD actions
 
+### Installing
+
+- [Install go](http://golang.org/dl/) if you don't already have it. The latest version is required for gopherjs.
+- Install [gopherjs](https://github.com/gopherjs/gopherjs)
+- Install humble itself with `go get -u github.com/gophergala/humble`
+- Import humble into your project like you would any other go package.
+
+
+### Running the Example
+
+Assuming you have followed all of the steps above,
+
+- Install the [backend server](https://github.com/albrow/todo-backend) (also written in go). Run it with `go run` and keep it running.
+- Change into the `example/todomvc` directory.
+- Run `gopherjs build github.com/gophergala/humble/example/todomvc/go -o js/app.js`
+- Serve the todomvc directory (e.g. with `python -m SimpleHTTPServer`) and visit in your browser.
+
+
 ### Routes
 
 A dynamic router that reads and builds URLs of the form "/#/my/favourite/page/{id}" with unlimited literal and query tokens that are passed to a function handler. The function handlers are written in idiomatic Go, mimicking the http.Handler syntax.
