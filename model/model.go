@@ -3,14 +3,35 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"honnef.co/go/js/xhr"
 	"net/url"
 	"reflect"
+
+	"honnef.co/go/js/xhr"
 )
 
 type Model interface {
 	GetId() string
 	RootURL() string
+}
+
+// Read expects a pointer to some concrete type which implements Model (e.g, *[]*Todo)
+func Read(model Model) error {
+	urlRoot := model.RootURL() + "/" + model.GetId()
+
+	req := xhr.NewRequest("GET", urlRoot)
+	req.Timeout = 1000 // one second, in milliseconds
+	req.ResponseType = "text"
+	req.WithCredentials = true
+	err := req.Send(nil)
+	if err != nil {
+		return fmt.Errorf("Something went wrong with GET request to %s. %s", urlRoot, err.Error())
+	}
+	err = json.Unmarshal([]byte(req.Response.String()), model)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
+	}
+
+	return nil
 }
 
 // ReadAll expects a pointer to a slice of poitners to some concrete type
@@ -37,6 +58,7 @@ func ReadAll(models interface{}) error {
 	req := xhr.NewRequest("GET", urlRoot)
 	req.Timeout = 1000 // one second, in milliseconds
 	req.ResponseType = "text"
+	req.WithCredentials = true
 	err := req.Send(nil)
 	if err != nil {
 		return fmt.Errorf("Something went wrong with GET request to %s. %s", urlRoot, err.Error())
@@ -60,6 +82,7 @@ func Delete(model Model) error {
 	req := xhr.NewRequest("DELETE", fullURL)
 	req.Timeout = 1000 // one second, in milliseconds
 	req.ResponseType = "text"
+	req.WithCredentials = true
 	err := req.Send(nil)
 	if err != nil {
 		return fmt.Errorf("Something went wrong with DELETE request to %s. %s", fullURL, err.Error())
@@ -94,6 +117,7 @@ func Create(model Model) error {
 	req.Timeout = 1000 //one second, in milliseconds
 	req.ResponseType = "text"
 	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+	req.WithCredentials = true
 	//Send our request
 	err := req.Send(bodyString)
 	if err != nil {
@@ -135,6 +159,7 @@ func Update(model Model) error {
 	req.Timeout = 1000 // one second, in milliseconds
 	req.ResponseType = "text"
 	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+	req.WithCredentials = true
 	// Send our request
 	err := req.Send(bodyString)
 	if err != nil {
