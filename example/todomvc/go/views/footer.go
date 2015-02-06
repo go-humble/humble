@@ -2,8 +2,8 @@ package views
 
 import (
 	"fmt"
-	"github.com/gophergala/humble"
-	"github.com/gophergala/humble/view"
+	"github.com/albrow/humble"
+	"github.com/albrow/humble/view"
 	"honnef.co/go/js/dom"
 	"strings"
 )
