@@ -2,7 +2,7 @@ package view
 
 import (
 	"fmt"
-	"github.com/gophergala/humble"
+	"github.com/albrow/humble"
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/dom"
 	"regexp"

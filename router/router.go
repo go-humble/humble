@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+var (
+	// Hash is everything after and including th "#" symbol in the url of the current
+	// page. It will be updated whenever the url changes. You can watch this for changes
+	// using humble/bind if you want to be notified of changes outside of the router, e.g.
+	// in views that add an "active" class to navigation links.
+	Hash string
+)
+
 // Router is responsible for handling routes
 type Router struct {
 	routes []*route
@@ -78,6 +86,9 @@ func (r *Router) setInitialHash() {
 
 // hashChanged is called whenever DOM onhashchange event is fired
 func (r *Router) hashChanged(hash string) {
+	// Update the current hash
+	Hash = hash
+
 	// path is everything after the '#'
 	path := strings.SplitN(hash, "#", 2)[1]
 	strs := strings.Split(path, "/")

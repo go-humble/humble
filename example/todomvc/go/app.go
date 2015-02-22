@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/gophergala/humble/example/todomvc/go/models"
-	"github.com/gophergala/humble/example/todomvc/go/views"
-	"github.com/gophergala/humble/model"
-	"github.com/gophergala/humble/router"
-	"github.com/gophergala/humble/view"
+	"github.com/albrow/humble/example/todomvc/go/models"
+	"github.com/albrow/humble/example/todomvc/go/views"
+	"github.com/albrow/humble/model"
+	"github.com/albrow/humble/router"
+	"github.com/albrow/humble/view"
 	"honnef.co/go/js/console"
 	"honnef.co/go/js/dom"
 )
