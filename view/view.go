@@ -2,8 +2,8 @@ package view
 
 import (
 	"fmt"
-	"github.com/albrow/humble"
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/soroushjp/humble"
 	"honnef.co/go/js/dom"
 	"regexp"
 )

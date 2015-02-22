@@ -2,10 +2,10 @@ package views
 
 import (
 	"fmt"
-	"github.com/albrow/humble"
-	"github.com/albrow/humble/example/todomvc/go/models"
-	"github.com/albrow/humble/model"
-	"github.com/albrow/humble/view"
+	"github.com/soroushjp/humble"
+	"github.com/soroushjp/humble/example/todomvc/go/models"
+	"github.com/soroushjp/humble/model"
+	"github.com/soroushjp/humble/view"
 	"honnef.co/go/js/dom"
 )
 
