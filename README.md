@@ -15,7 +15,7 @@ We knew Go was the language we loved working in on the backend for our web appli
 
 - [Install go](http://golang.org/dl/) if you don't already have it. The latest version is required for gopherjs.
 - Install [gopherjs](https://github.com/gopherjs/gopherjs)
-- Install humble itself with `go get -u github.com/gophergala/humble`
+- Install humble itself with `go get -u github.com/soroushjp/humble`
 - Import humble into your project like you would any other go package.
 
 
@@ -25,7 +25,7 @@ Assuming you have followed all of the steps above,
 
 - Install the [backend server](https://github.com/albrow/todo-backend) (also written in go). Run it with `go run` and keep it running.
 - Change into the `example/todomvc` directory.
-- Run `gopherjs build github.com/gophergala/humble/example/todomvc/go -o js/app.js`
+- Run `gopherjs build github.com/soroushjp/humble/example/todomvc/go -o js/app.js`
 - Serve the todomvc directory (e.g. with `python -m SimpleHTTPServer`) and visit in your browser.
 
 
