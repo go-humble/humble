@@ -1,5 +1,7 @@
 ## humble - A frontend framework for Go
 
+Version: 0.0.1
+
 ###What is humble?
 
 We knew Go was the language we loved working in on the backend for our web applications, but what if we could build our *frontends* in Go too? humble is a  lightweight, modular framework for Go that has 3 main, modular pieces that work together and apart:
