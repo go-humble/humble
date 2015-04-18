@@ -1,6 +1,6 @@
 ## humble - A frontend framework for Go
 
-Version: 0.0.1
+Version: X.X.X
 
 ###What is humble?
 
