@@ -63,6 +63,48 @@ This allows:
 
 --------------
 
+### Testing
+
+TODO: write a script that runs all the tests automatically
+
+#### Router Tests
+
+#### Model Tests
+
+The model package includes code which communicates with a REST server. We use
+karma to test this code running in actual browsers. You will need to install
+these dependencies:
+
+- [node.js](http://nodejs.org/)
+- [karma](http://karma-runner.github.io/0.12/index.html)
+- [karma-jasmine](https://github.com/karma-runner/karma-jasmine)
+
+Don't forget to also install the karma command line tools with `npm install -g
+karma-cli`.
+
+You will also need to install a launcher for each browser you want to test with,
+as well as the browsers themselves. Typically you install a karma launcher with
+`npm install -g karma-chrome-launcher`. You can edit the config files
+`karma/test-mac.conf.js` if you want to change the browsers that are tested on.
+
+Once you have installed all the dependencies, start karma with
+`karma start karma/test-mac.conf.js`. Once karma is running, you can keep it
+running in between tests.
+
+Next you need to compile the test.go file to javascript so it can run in the
+browsers:
+
+```
+gopherjs build karma/go/test.go -o karma/js/test.js
+```
+
+Finally run the tests:
+
+```
+karma run
+```
+
+
 ### Examples
 
 See the TodoMVC example in example/todomvc to see how it all fits together.
