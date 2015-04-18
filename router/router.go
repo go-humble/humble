@@ -82,7 +82,6 @@ func (r *Router) hashChanged(hash string) {
 	path := strings.SplitN(hash, "#", 2)[1]
 	strs := strings.Split(path, "/")
 	strs = removeEmptyStrings(strs)
-
 	// Compare given path against regex patterns of routes. Preference given to routes with most literal (non-query) matches.
 	// Route 1: /todos/work
 	// Route 2: /todos/{category}
@@ -100,19 +99,17 @@ func (r *Router) hashChanged(hash string) {
 			}
 		}
 	}
-
 	//If no routes match, we throw console error and no handlers are called
 	if bestRoute == nil {
 		console.Error("Could not find route to match: " + path)
 		return
 	}
-
 	// Make the params map and pass it to the handler
 	params := map[string]string{}
 	for i, match := range bestMatches {
 		params[bestRoute.paramNames[i]] = match
 	}
-	bestRoute.handler(params) //gopherjs:blocking
+	bestRoute.handler(params)
 }
 
 // removeEmptyStrings removes any empty strings from a
