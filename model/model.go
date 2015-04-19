@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"honnef.co/go/js/xhr"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"reflect"
 )
@@ -33,19 +35,18 @@ func ReadAll(models interface{}) error {
 	newModel := newModelInterface.(Model)
 	// TODO: check for a failed type assertion!
 	urlRoot := newModel.RootURL()
-
-	req := xhr.NewRequest("GET", urlRoot)
-	req.Timeout = 1000 // one second, in milliseconds
-	req.ResponseType = "text"
-	err := req.Send(nil)
+	// Create request
+	res, err := http.Get(urlRoot)
 	if err != nil {
-		return fmt.Errorf("Something went wrong with GET request to %s. %s", urlRoot, err.Error())
+		return fmt.Errorf("Something went wrong with GET request to %s: %s", urlRoot, err.Error())
 	}
-	err = json.Unmarshal([]byte(req.Response.String()), models)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
+		return fmt.Errorf("Couldn't read response to %s: %s", urlRoot, err.Error())
 	}
-
+	if err := json.Unmarshal(body, models); err != nil {
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, string(body))
+	}
 	return nil
 }
 

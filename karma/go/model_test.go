@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/JohannWeging/jasmine"
+	"fmt"
+	"github.com/rusco/qunit"
 	"github.com/soroushjp/humble/model"
+	"reflect"
 	"strconv"
 )
 
@@ -21,32 +23,30 @@ func (t Todo) RootURL() string {
 }
 
 func main() {
-	jasmine.Describe("ReadAll", func() {
-		jasmine.It("gets all the existing todos", func() {
-			expectedModels := []*Todo{
-				{
-					Id:          0,
-					Title:       "Write a frontend framework in Go",
-					IsCompleted: false,
-				},
-				{
-					Id:          1,
-					Title:       "???",
-					IsCompleted: false,
-				},
-				{
-					Id:          2,
-					Title:       "Profit!",
-					IsCompleted: false,
-				},
-			}
-			go func() {
-				gotModels := []*Todo{}
-				err := model.ReadAll(&gotModels)
-				jasmine.Expect(err).ToEqual(nil)
-				jasmine.Expect(gotModels).ToEqual(expectedModels)
-			}()
-		})
+	qunit.AsyncTest("ReadAll", func() interface{} {
+		qunit.Expect(2)
+		expectedTodos := []*Todo{
+			{
+				Id:          0,
+				Title:       "Write a frontend framework in Go",
+				IsCompleted: false,
+			},
+			{
+				Id:          1,
+				Title:       "???",
+				IsCompleted: false,
+			},
+			{
+				Id:          2,
+				Title:       "Profit!",
+				IsCompleted: false,
+			},
+		}
+		gotTodos := []*Todo{}
+		err := model.ReadAll(&gotTodos)
+		qunit.Ok(err == nil, fmt.Sprintf("model.ReadAll returned an error: %v", err))
+		qunit.Ok(reflect.DeepEqual(gotTodos, expectedTodos), fmt.Sprintf("Expected: %v, Got: %v", expectedTodos, gotTodos))
+		qunit.Start()
+		return nil
 	})
-
 }
