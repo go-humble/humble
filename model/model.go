@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 )
 
 type Model interface {
@@ -111,20 +112,18 @@ func Create(model Model) error {
 			bodyString += "&"
 		}
 	}
-	// Create our x-www-form-urlencoded POST request
-	req := xhr.NewRequest("POST", fullURL)
-	req.Timeout = 1000 //one second, in milliseconds
-	req.ResponseType = "text"
-	req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded")
-	//Send our request
-	err := req.Send(bodyString)
+	res, err := http.Post(fullURL, "application/x-www-form-urlencoded", strings.NewReader(bodyString))
 	if err != nil {
-		return err
+		return fmt.Errorf("Something went wrong with POST request to %s. %s", fullURL, err.Error())
 	}
 	// Unmarshal our server response object into our model
-	err = json.Unmarshal([]byte(req.Response.String()), model)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, req.Response.String())
+		return fmt.Errorf("Couldn't read response to %s: %s", fullURL, err.Error())
+	}
+	err = json.Unmarshal(body, model)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, string(body))
 	}
 	return nil
 }
