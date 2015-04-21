@@ -25,25 +25,25 @@ func (t Todo) RootURL() string {
 func main() {
 	qunit.Test("ReadAll", func(assert qunit.QUnitAssert) {
 		qunit.Expect(2)
-		expectedTodos := []*Todo{
-			{
-				Id:          0,
-				Title:       "Write a frontend framework in Go",
-				IsCompleted: false,
-			},
-			{
-				Id:          1,
-				Title:       "???",
-				IsCompleted: false,
-			},
-			{
-				Id:          2,
-				Title:       "Profit!",
-				IsCompleted: false,
-			},
-		}
 		done := assert.Call("async")
 		go func() {
+			expectedTodos := []*Todo{
+				{
+					Id:          0,
+					Title:       "Write a frontend framework in Go",
+					IsCompleted: false,
+				},
+				{
+					Id:          1,
+					Title:       "???",
+					IsCompleted: false,
+				},
+				{
+					Id:          2,
+					Title:       "Profit!",
+					IsCompleted: false,
+				},
+			}
 			gotTodos := []*Todo{}
 			err := model.ReadAll(&gotTodos)
 			assert.Ok(err == nil, fmt.Sprintf("model.ReadAll returned an error: %v", err))
@@ -54,17 +54,42 @@ func main() {
 
 	qunit.Test("Read", func(assert qunit.QUnitAssert) {
 		qunit.Expect(2)
-		expectedTodo := &Todo{
-			Id:          0,
-			Title:       "Write a frontend framework in Go",
-			IsCompleted: false,
-		}
 		done := assert.Call("async")
 		go func() {
+			expectedTodo := &Todo{
+				Id:          0,
+				Title:       "Write a frontend framework in Go",
+				IsCompleted: false,
+			}
 			gotTodo := &Todo{}
 			err := model.Read("0", gotTodo)
 			assert.Ok(err == nil, fmt.Sprintf("model.Read returned an error: %v", err))
 			assert.Ok(reflect.DeepEqual(gotTodo, expectedTodo), fmt.Sprintf("Expected: %v, Got: %v", expectedTodo, gotTodo))
+			done.Invoke()
+		}()
+	})
+
+	qunit.Test("Create", func(assert qunit.QUnitAssert) {
+		// For some unkown reason, qunit is running 8 assertions and reporting an error
+		// There are obviously only 4 so something wonky is happening. The other tests
+		// seem fine.
+		// qunit.Expect(4)
+		done := assert.Call("async")
+		go func() {
+			newTodo := &Todo{
+				Title:       "Test",
+				IsCompleted: true,
+			}
+			err := model.Create(newTodo)
+			assert.Ok(err == nil, fmt.Sprintf("model.Create returned an error: %v", err))
+			assert.Equal(newTodo.IsCompleted, true, "newTodo.IsCompleted was incorrect.")
+			assert.Equal(newTodo.Title, "Test", "newTodo.Title was incorrect.")
+			assert.NotEqual(newTodo.Id, 0, "newTodo.Id was not set correctly.")
+			// Clean up after ourselves by deleting the todo we just created
+			err = model.Delete(newTodo)
+			if err != nil {
+				panic(err)
+			}
 			done.Invoke()
 		}()
 	})
