@@ -16,7 +16,7 @@ type Model interface {
 }
 
 // ReadAll expects a pointer to a slice of poitners to some concrete type
-// which implements Model (e.g., *[]*Todo). GetAll will send a GET request to
+// which implements Model (e.g., *[]*Todo). ReadAll will send a GET request to
 // a RESTful server and scan the results into models. It expects a json array
 // of json objects from the server, where each object represents a single Model
 // of some concrete type. It will use the RootURL() method of the models to
@@ -45,6 +45,27 @@ func ReadAll(models interface{}) error {
 		return fmt.Errorf("Couldn't read response to %s: %s", urlRoot, err.Error())
 	}
 	if err := json.Unmarshal(body, models); err != nil {
+		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, string(body))
+	}
+	return nil
+}
+
+// Read will send a GET request to a RESTful server to get the model by the given id,
+// then it will scan the results into model. It expects a json object which contains all
+// the fields for the requested model. Read will use the RootURL() method of the model to
+// figure out which url to send the GET request to. Typically the full url will look something
+// like "http://hostname.com/todos/123"
+func Read(id string, model Model) error {
+	fullURL := model.RootURL() + "/" + id
+	res, err := http.Get(fullURL)
+	if err != nil {
+		return fmt.Errorf("Something went wrong with GET request to %s: %s", fullURL, err.Error())
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("Couldn't read response to %s: %s", fullURL, err.Error())
+	}
+	if err := json.Unmarshal(body, model); err != nil {
 		return fmt.Errorf("Failed to unmarshal response into object, with Error: %s.\nResponse was: %s", err, string(body))
 	}
 	return nil

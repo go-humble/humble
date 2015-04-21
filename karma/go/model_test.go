@@ -51,4 +51,21 @@ func main() {
 			done.Invoke()
 		}()
 	})
+
+	qunit.Test("Read", func(assert qunit.QUnitAssert) {
+		qunit.Expect(2)
+		expectedTodo := &Todo{
+			Id:          0,
+			Title:       "Write a frontend framework in Go",
+			IsCompleted: false,
+		}
+		done := assert.Call("async")
+		go func() {
+			gotTodo := &Todo{}
+			err := model.Read("0", gotTodo)
+			assert.Ok(err == nil, fmt.Sprintf("model.Read returned an error: %v", err))
+			assert.Ok(reflect.DeepEqual(gotTodo, expectedTodo), fmt.Sprintf("Expected: %v, Got: %v", expectedTodo, gotTodo))
+			done.Invoke()
+		}()
+	})
 }
