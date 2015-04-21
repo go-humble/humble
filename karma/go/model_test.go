@@ -23,7 +23,7 @@ func (t Todo) RootURL() string {
 }
 
 func main() {
-	qunit.AsyncTest("ReadAll", func() interface{} {
+	qunit.Test("ReadAll", func(assert qunit.QUnitAssert) {
 		qunit.Expect(2)
 		expectedTodos := []*Todo{
 			{
@@ -42,11 +42,13 @@ func main() {
 				IsCompleted: false,
 			},
 		}
-		gotTodos := []*Todo{}
-		err := model.ReadAll(&gotTodos)
-		qunit.Ok(err == nil, fmt.Sprintf("model.ReadAll returned an error: %v", err))
-		qunit.Ok(reflect.DeepEqual(gotTodos, expectedTodos), fmt.Sprintf("Expected: %v, Got: %v", expectedTodos, gotTodos))
-		qunit.Start()
-		return nil
+		done := assert.Call("async")
+		go func() {
+			gotTodos := []*Todo{}
+			err := model.ReadAll(&gotTodos)
+			assert.Ok(err == nil, fmt.Sprintf("model.ReadAll returned an error: %v", err))
+			assert.Ok(reflect.DeepEqual(gotTodos, expectedTodos), fmt.Sprintf("Expected: %v, Got: %v", expectedTodos, gotTodos))
+			done.Invoke()
+		}()
 	})
 }
