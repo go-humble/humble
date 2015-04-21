@@ -49,7 +49,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/todos", todosController.Index).Methods("GET")
 	router.HandleFunc("/todos", todosController.Create).Methods("POST")
-	router.HandleFunc("/todos/{id}", todosController.Read).Methods("GET")
+	router.HandleFunc("/todos/{id}", todosController.Show).Methods("GET")
 	router.HandleFunc("/todos/{id}", todosController.Update).Methods("PUT")
 	router.HandleFunc("/todos/{id}", todosController.Delete).Methods("DELETE")
 
@@ -79,19 +79,20 @@ func main() {
 }
 
 func createInitialTodos() {
-	createTodo("Write a frontend framework in Go")
-	createTodo("???")
-	createTodo("Profit!")
+	createTodo("Write a frontend framework in Go", false)
+	createTodo("???", false)
+	createTodo("Profit!", false)
 }
 
-func createTodo(title string) *Todo {
+func createTodo(title string, isCompleted bool) *Todo {
 	todosMutex.Lock()
 	defer todosMutex.Unlock()
 	id := todosCounter
 	todosCounter++
 	todo := &Todo{
-		Id:    id,
-		Title: title,
+		Id:          id,
+		Title:       title,
+		IsCompleted: isCompleted,
 	}
 	todos[id] = todo
 	return todo
@@ -114,17 +115,18 @@ func (todosControllerType) Create(w http.ResponseWriter, req *http.Request) {
 	}
 	val := todoData.Validator()
 	val.Require("Title")
+	val.Require("IsCompleted")
 	if val.HasErrors() {
 		r.JSON(w, statusUnprocessableEntity, val.ErrorMap())
 		return
 	}
 
 	// Create the todo and render response
-	todo := createTodo(todoData.Get("Title"))
+	todo := createTodo(todoData.Get("Title"), todoData.GetBool("IsCompleted"))
 	r.JSON(w, http.StatusOK, todo)
 }
 
-func (todosControllerType) Read(w http.ResponseWriter, req *http.Request) {
+func (todosControllerType) Show(w http.ResponseWriter, req *http.Request) {
 	urlParams := mux.Vars(req)
 	idString := urlParams["id"]
 	id, err := strconv.Atoi(idString)
