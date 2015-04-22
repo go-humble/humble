@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/rusco/qunit"
+	"github.com/albrow/qunit"
 	"github.com/soroushjp/humble/model"
 	"reflect"
 	"strconv"
@@ -70,10 +70,7 @@ func main() {
 	})
 
 	qunit.Test("Create", func(assert qunit.QUnitAssert) {
-		// For some unkown reason, qunit is running 8 assertions and reporting an error
-		// There are obviously only 4 so something wonky is happening. The other tests
-		// seem fine.
-		// qunit.Expect(4)
+		qunit.Expect(4)
 		done := assert.Call("async")
 		go func() {
 			newTodo := &Todo{
