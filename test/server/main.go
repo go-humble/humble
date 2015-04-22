@@ -1,37 +1,49 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/albrow/forms"
-	"github.com/albrow/negroni-json-recovery"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
 	"github.com/martini-contrib/cors"
 	"github.com/unrolled/render"
 	"net/http"
-	"sort"
 	"strconv"
-	"sync"
 )
 
-type Todo struct {
+// NOTE: This is a test server specifically designed for testing the humble framework.
+// As such, it is designed to be completely idempotent. That means nothing you do will
+// actually change the data on the server, and sending the same request will always
+// give you the same response. However, when possible the responses are designed to mimic
+// that of a real server that does hold state.
+
+type todo struct {
 	Id          int
 	Title       string
 	IsCompleted bool
 }
 
-type todosIndex map[int]*Todo
-type todosList []*Todo
+// Since the server is idempotent, the list of todos will never change, regardless of
+// requests to create, update, or delete todos.
+var todos = []todo{
+	{
+		Id:          0,
+		Title:       "Todo 0",
+		IsCompleted: false,
+	},
+	{
+		Id:          1,
+		Title:       "Todo 1",
+		IsCompleted: false,
+	},
+	{
+		Id:          2,
+		Title:       "Todo 2",
+		IsCompleted: true,
+	},
+}
 
 var (
-	// todos stores all the todos as a map of id to *Todo
-	todos = todosIndex{}
-	// todosMutex protects access to the todos map
-	todosMutex = sync.Mutex{}
-	// todosCounter is incremented every time a new todo is created
-	// it is used to set todo ids.
-	todosCounter = 0
 	// r is used to render responses
 	r = render.New(render.Options{
 		IndentJSON: true,
@@ -43,8 +55,6 @@ const (
 )
 
 func main() {
-	createInitialTodos()
-
 	// Routes
 	router := mux.NewRouter()
 	router.HandleFunc("/todos", todosController.Index).Methods("GET")
@@ -62,14 +72,6 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
-	n.Use(recovery.JSONRecovery(true))
-	recovery.StackDepth = 3
-	recovery.IndentJSON = true
-	recovery.Formatter = func(errMsg string, stack []byte, file string, line int, fullMessages bool) interface{} {
-		return map[string]string{
-			"error": errMsg,
-		}
-	}
 
 	// Router must always come last
 	n.UseHandler(router)
@@ -78,35 +80,21 @@ func main() {
 	n.Run(":3000")
 }
 
-func createInitialTodos() {
-	createTodo("Write a frontend framework in Go", false)
-	createTodo("???", false)
-	createTodo("Profit!", false)
-}
-
-func createTodo(title string, isCompleted bool) *Todo {
-	todosMutex.Lock()
-	defer todosMutex.Unlock()
-	id := todosCounter
-	todosCounter++
-	todo := &Todo{
-		Id:          id,
-		Title:       title,
-		IsCompleted: isCompleted,
-	}
-	todos[id] = todo
-	return todo
-}
-
 // Todos Controller and its methods
 type todosControllerType struct{}
 
 var todosController = todosControllerType{}
 
+// Index returns a list of todos as an array of json objects. It always returns the
+// same list of todos and is idempotent.
 func (todosControllerType) Index(w http.ResponseWriter, req *http.Request) {
 	r.JSON(w, http.StatusOK, todos)
 }
 
+// Create accepts form data for creating a new todo. Since this server is designed
+// for testing, it does not actually create the todo, as that would make the server
+// non-idempotent. Create returns the todo that would be created as a json object.
+// It assigns the id of 3 to the todo.
 func (todosControllerType) Create(w http.ResponseWriter, req *http.Request) {
 	// Parse data and do validations
 	todoData, err := forms.Parse(req)
@@ -121,94 +109,41 @@ func (todosControllerType) Create(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Create the todo and render response
-	todo := createTodo(todoData.Get("Title"), todoData.GetBool("IsCompleted"))
+	// Return the todo that would be created
+	todo := todo{
+		Id:          3,
+		Title:       todoData.Get("Title"),
+		IsCompleted: todoData.GetBool("IsCompleted"),
+	}
 	r.JSON(w, http.StatusOK, todo)
 }
 
+// Show returns the json data for an existing todo. Since the todos never change
+// and there are three of them, Show will only respond with a todo object for id
+// parameters between 0 and 2. Any other id will result in a 422 error.
 func (todosControllerType) Show(w http.ResponseWriter, req *http.Request) {
 	urlParams := mux.Vars(req)
 	idString := urlParams["id"]
 	id, err := strconv.Atoi(idString)
 	if err != nil {
-		panic(err)
+		r.JSON(w, statusUnprocessableEntity, map[string]string{
+			"error": fmt.Sprintf(`Could not convert id paramater "%s" to int`, urlParams["id"]),
+		})
+		return
 	}
-
+	if id < 0 || id > 2 {
+		r.JSON(w, statusUnprocessableEntity, map[string]string{
+			"error": fmt.Sprintf(`Could not find todo with id = %d`, id),
+		})
+		return
+	}
 	r.JSON(w, http.StatusOK, todos[id])
 }
 
 func (todosControllerType) Update(w http.ResponseWriter, req *http.Request) {
-	// Get the existing todo from the map or render an error
-	// if it wasn't found
-	urlParams := mux.Vars(req)
-	idString := urlParams["id"]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		panic(err)
-	}
-	todo, found := todos[id]
-	if !found {
-		msg := fmt.Sprintf("Could not find todo with id = %d", id)
-		r.JSON(w, http.StatusNotFound, map[string]string{
-			"error": msg,
-		})
-		return
-	}
-
-	// Update the todo with the data in the request
-	todoData, err := forms.Parse(req)
-	if err != nil {
-		panic(err)
-	}
-	todosMutex.Lock()
-	if todoData.KeyExists("Title") {
-		todo.Title = todoData.Get("Title")
-	}
-	if todoData.KeyExists("IsCompleted") {
-		todo.IsCompleted = todoData.GetBool("IsCompleted")
-	}
-	todosMutex.Unlock()
-
-	// Render response
-	r.JSON(w, http.StatusOK, todo)
+	// TODO: rewrite this method in an idempotent way
 }
 
 func (todosControllerType) Delete(w http.ResponseWriter, req *http.Request) {
-	// Get the id from the url parameters
-	urlParams := mux.Vars(req)
-	idString := urlParams["id"]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		panic(err)
-	}
-
-	// Delete the todo and render a response
-	todosMutex.Lock()
-	delete(todos, id)
-	todosMutex.Unlock()
-	r.JSON(w, http.StatusOK, struct{}{})
-}
-
-// Make todosIndex satisfy the json.Marshaller interface
-// It will return a json array of todos sorted by id
-func (t todosIndex) MarshalJSON() ([]byte, error) {
-	todosList := todosList{}
-	for _, todo := range t {
-		todosList = append(todosList, todo)
-	}
-	sort.Sort(todosList)
-	return json.Marshal(todosList)
-}
-
-// Make todoList satisfy sort.Interface
-func (tl todosList) Len() int {
-	return len(tl)
-}
-
-func (tl todosList) Less(i, j int) bool {
-	return tl[i].Id < tl[j].Id
-}
-
-func (tl todosList) Swap(i, j int) {
-	tl[i], tl[j] = tl[j], tl[i]
+	// TODO: rewrite this method in an idempotent way
 }

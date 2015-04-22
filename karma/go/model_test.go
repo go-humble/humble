@@ -30,18 +30,18 @@ func main() {
 			expectedTodos := []*Todo{
 				{
 					Id:          0,
-					Title:       "Write a frontend framework in Go",
+					Title:       "Todo 0",
 					IsCompleted: false,
 				},
 				{
 					Id:          1,
-					Title:       "???",
+					Title:       "Todo 1",
 					IsCompleted: false,
 				},
 				{
 					Id:          2,
-					Title:       "Profit!",
-					IsCompleted: false,
+					Title:       "Todo 2",
+					IsCompleted: true,
 				},
 			}
 			gotTodos := []*Todo{}
@@ -57,12 +57,12 @@ func main() {
 		done := assert.Call("async")
 		go func() {
 			expectedTodo := &Todo{
-				Id:          0,
-				Title:       "Write a frontend framework in Go",
-				IsCompleted: false,
+				Id:          2,
+				Title:       "Todo 2",
+				IsCompleted: true,
 			}
 			gotTodo := &Todo{}
-			err := model.Read("0", gotTodo)
+			err := model.Read("2", gotTodo)
 			assert.Ok(err == nil, fmt.Sprintf("model.Read returned an error: %v", err))
 			assert.Ok(reflect.DeepEqual(gotTodo, expectedTodo), fmt.Sprintf("Expected: %v, Got: %v", expectedTodo, gotTodo))
 			done.Invoke()
@@ -84,12 +84,7 @@ func main() {
 			assert.Ok(err == nil, fmt.Sprintf("model.Create returned an error: %v", err))
 			assert.Equal(newTodo.IsCompleted, true, "newTodo.IsCompleted was incorrect.")
 			assert.Equal(newTodo.Title, "Test", "newTodo.Title was incorrect.")
-			assert.NotEqual(newTodo.Id, 0, "newTodo.Id was not set correctly.")
-			// Clean up after ourselves by deleting the todo we just created
-			err = model.Delete(newTodo)
-			if err != nil {
-				panic(err)
-			}
+			assert.Equal(newTodo.Id, 3, "newTodo.Id was not set correctly.")
 			done.Invoke()
 		}()
 	})

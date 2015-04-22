@@ -10,10 +10,11 @@ application/json, application/x-www-form-urlencoded, or multipart/form-data and
 responds with JSON. It does validations and returns 422 errors when validations
 fail.
 
-This backend simply stores todos in memory so you don't have to worry about
-setting up a database. This means there is no persistence, so if you restart
-the server all your todos will be gone. It's perfect for testing and building
-new things, but not recommended for use in production.
+This is a test server specifically designed for testing the humble framework.
+As such, it is designed to be completely idempotent. That means nothing you do will
+actually change the data on the server, and sending the same request will always
+give you the same response. However, when possible the responses are designed to mimic
+that of a real server that does hold state.
 
 
 ### Getting Up and Running
@@ -25,7 +26,7 @@ new things, but not recommended for use in production.
 
 #### GET /todos
 
-List all existing todos, ordered by time of creation.
+List all existing todos. Since this server is idempotent, the response is always exactly the same.
 
 **Parameters**: none
 
@@ -36,32 +37,38 @@ Success:
 ```json
 [
   {
-    "id": 0,
-    "title": "Write a frontend framework in Go",
-    "isCompleted": false
+    "Id": 0,
+    "Title": "Todo 0",
+    "IsCompleted": false
   },
   {
-    "id": 1,
-    "title": "???",
-    "isCompleted": false
+    "Id": 1,
+    "Title": "Todo 1",
+    "IsCompleted": false
   },
   {
-    "id": 2,
-    "title": "Profit!",
-    "isCompleted": false
+    "Id": 2,
+    "Title": "Todo 2",
+    "IsCompleted": true
   }
 ]
 ```
 
 #### POST /todos
 
-Create a new todo item.
+Simulate creation of a new todo item. Since this server is idempotent, the state never changes
+and the list of todos always stays the same. However, the server will respond exactly as if the
+todo were created, and even will assign it an id. The id assigned is always 3. The rest of the
+response can vary, as the Title and IsCompleted field of the response will match the form data
+that was submitted for the todo. The server will also validate the submitted data by requiring
+the Title and IsCompleted fields. If either is not provided, it returns a validation error.
 
 **Parameters**:
 
-| Field    | Type    | Description     |
-| ---------| ------- | --------------- |
-| title    | string  | The title of the new todo. |
+| Field       | Type    | Description     |
+| ----------- | ------- | --------------- |
+| Title       | string  | The title of the new todo. |
+| IsCompleted | bool    | Whether or not the todo is completed. |
 
 
 **Example Responses**:
@@ -70,9 +77,9 @@ Success:
 
 ```json
 {
-  "id": 3,
-  "title": "Take out the trash",
-  "isCompleted": false
+  "Id": 3,
+  "Title": "New Test Todo",
+  "IsCompleted": false
 }
 ```
 
@@ -80,22 +87,25 @@ Validation error:
 
 ```json
 {
-  "title": [
-    "title is required."
+  "Title": [
+    "Title is required."
   ]
 }
 ```
 
 #### PUT /todos/{id}
 
-Edit an existing todo item.
+Simulate editing an existing todo item. Since this server is idempotent, the state never changes
+and the list of todos always stays the same. However, the server will respond exactly as if the
+todo were updated, and will respond with json data representing the updated todo. The server will
+return an error if the id is not an integer between 0 and 2.
 
 **Parameters**:
 
 | Field       | Type    | Description     |
 | ----------- | ------- | --------------- |
-| title       | string  | The title of the todo. |
-| isCompleted | bool    | Whether or not the todo has been completed. |
+| Title       | string  | The title of the todo. |
+| IsCompleted | bool    | Whether or not the todo has been completed. |
 
 **Example Responses**:
 
@@ -103,15 +113,26 @@ Success:
 
 ```json
 {
-  "id": 3,
-  "title": "Handle the garbage",
-  "isCompleted": false
+  "Id": 3,
+  "Title": "Updated Title",
+  "IsCompleted": true
+}
+```
+
+Error:
+
+```json
+{
+  "error": "Could not find todo with id = 5"
 }
 ```
 
 #### DELETE /todos/{id}
 
-Delete an existing todo item.
+Simulate deletion of an existing todo item. Since this server is idempotent, the state never changes
+and the list of todos always stays the same. However, the server will respond exactly as if the
+todo were deleted. A successful response is always just an empty json object. The server will
+return an error if the id is not an integer between 0 and 2.
 
 **Parameters**: none
 
