@@ -1,3 +1,11 @@
+// package model contains functions for sending http requests to a REST API, which
+// can be used to create, read, update, and delete models from a server.
+//
+// TODO: add a really detailed package doc comment describing:
+//   - The methods and urls that are used for each function
+//   - The format in which models are encoded and what field types are supported
+//   - What responses from the server should look like
+//   - What happens if there is a non-200 response status code
 package model
 
 import (
@@ -11,16 +19,28 @@ import (
 	"strings"
 )
 
+// Model must be satisfied by all models. Satisfying this interface allows you to
+// use the helper methods which send http requests to a REST API. They are used
+// for e.g., creating a new model or getting an existing model from the server.
+// Because of the way reflection is used to encode the data, a Model must have an
+// underlying type of either a struct or a pointer to a struct.
 type Model interface {
+	// GetId returns a unique identifier for the model. It is used for determining
+	// which URL to send a request to.
 	GetId() string
+	// RootURL returns the url for the REST resource corresponding to this model.
+	// Typically it should look something like "http://examle.com/todos". Note that
+	// the trailing slash should not be included.
 	RootURL() string
 }
 
-// Create expects a pointer some concrete type which implements Model (e.g., *Todo).
-// It will send a POST request to the RESTful server. It expects a JSON containing the
-// created object from the server if the request was successful, and will set the fields of
-// model with the data in the response object. It will use the RootURL() method of
-// the model to determine which url to send the POST request to.
+// Create sends an http request to create the given model. It uses reflection to
+// convert the fields of model to url-encoded data. Then it sends a POST request to
+// model.RootURL() with the encoded data in the body and the Content-Type header set to
+// application/x-www-form-urlencoded. It expects a JSON response containing the created
+// object from the server if the request was successful, in which case it will mutate model
+// by setting the fields to the values in the JSON response. Since model may be mutated,
+// it should be a poitner.
 func Create(model Model) error {
 	fullURL := model.RootURL()
 	encodedModelData, err := encodeModelFields(model)
@@ -30,22 +50,24 @@ func Create(model Model) error {
 	return sendRequestAndUnmarshal("POST", fullURL, encodedModelData, model)
 }
 
-// Read will send a GET request to a RESTful server to get the model by the given id,
-// then it will scan the results into model. It expects a json object which contains all
-// the fields for the requested model. Read will use the RootURL() method of the model to
-// figure out which url to send the GET request to. Typically the full url will look something
-// like "http://hostname.com/todos/123"
+// Read sends an http request to read (or fetch) the model with the given id
+// from the server. It sends a GET request to model.RootURL() + "/" + model.GetId().
+// Read expects a JSON response containing the data for the requested model if the
+// request was successful, in which case it will mutate model by setting the fields
+// to the values in the JSON response. Since model may be mutated, it should be
+// a pointer.
 func Read(id string, model Model) error {
 	fullURL := model.RootURL() + "/" + id
 	return sendRequestAndUnmarshal("GET", fullURL, "", model)
 }
 
-// ReadAll expects a pointer to a slice of poitners to some concrete type
-// which implements Model (e.g., *[]*Todo). ReadAll will send a GET request to
-// a RESTful server and scan the results into models. It expects a json array
-// of json objects from the server, where each object represents a single Model
-// of some concrete type. It will use the RootURL() method of the models to
-// figure out which url to send the GET request to.
+// ReadAll sends an http request to read (or fetch) all the models of a particular
+// type from the server (e.g. get all the todos). It sends a GET request to
+// model.RootURL(). ReadAll expects a JSON response containing an array of objects,
+// where each object contains data for one model. models must be a pointer to a slice
+// of some type which implements Model. ReadAll will mutate models by growing or shrinking
+// the slice as needed, and by setting the fields of each element to the values in the JSON
+// response.
 func ReadAll(models interface{}) error {
 	rootURL, err := getURLFromModels(models)
 	if err != nil {
@@ -54,11 +76,12 @@ func ReadAll(models interface{}) error {
 	return sendRequestAndUnmarshal("GET", rootURL, "", models)
 }
 
-// Update expects a pointer some concrete type which implements Model (e.g., *Todo), with a model.Id
-// that matches a stored object on the server. It will send a PUT request to the RESTful server.
-// It expects a JSON containing the updated object from the server if the request was successful,
-// and will set the fields of model with the data in the response object.
-// It will use the RootURL() method of the model to determine which url to send the PUT request to.
+// Update sends an http request to update the given model, i.e. to change some or all
+// of the fields. It sends a PUT request to model.RootURL() + "/" + model.GetId().
+// Update expects a JSON response containing the data for the updated model if the
+// request was successful, in which case it will mutate model by setting the fields
+// to the values in the JSON response. Since model may be mutated, it should be
+// a pointer.
 func Update(model Model) error {
 	fullURL := model.RootURL() + "/" + model.GetId()
 	encodedModelData, err := encodeModelFields(model)
@@ -68,12 +91,9 @@ func Update(model Model) error {
 	return sendRequestAndUnmarshal("PUT", fullURL, encodedModelData, model)
 }
 
-// Delete expects a pointer some concrete type which implements Model (e.g., *Todo).
-// It will send a DELETE request to a RESTful server. It expects an empty json
-// object from the server if the request was successful, and will not attempt to do anything
-// with the response. It will use the RootURL() and GetId() methods of the model to determine
-// which url to send the DELETE request to. Typically, the full url will look something
-// like "http://hostname.com/todos/123"
+// Delete sends an http request to delete the given model. It sends a DELETE request
+// to model.RootURL() + "/" + model.GetId(). DELETE expects an empty JSON response
+// if the request was successful, and it will not mutate model.
 func Delete(model Model) error {
 	fullURL := model.RootURL() + "/" + model.GetId()
 	req, err := http.NewRequest("DELETE", fullURL, nil)
