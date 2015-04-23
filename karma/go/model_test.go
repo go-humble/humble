@@ -103,4 +103,17 @@ func main() {
 			done.Invoke()
 		}()
 	})
+
+	qunit.Test("Delete", func(assert qunit.QUnitAssert) {
+		qunit.Expect(1)
+		done := assert.Call("async")
+		go func() {
+			deletedTodo := &Todo{
+				Id: 1,
+			}
+			err := model.Delete(deletedTodo)
+			assert.Ok(err == nil, fmt.Sprintf("model.Update returned an error: %v", err))
+			done.Invoke()
+		}()
+	})
 }

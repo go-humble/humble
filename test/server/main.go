@@ -168,7 +168,14 @@ func (todosControllerType) Update(w http.ResponseWriter, req *http.Request) {
 }
 
 func (todosControllerType) Delete(w http.ResponseWriter, req *http.Request) {
-	// TODO: rewrite this method in an idempotent way
+	// Get the id from the url parameters
+	if _, err := parseId(req); err != nil {
+		r.JSON(w, statusUnprocessableEntity, map[string]error{
+			"error": err,
+		})
+		return
+	}
+	r.JSON(w, http.StatusOK, struct{}{})
 }
 
 // parseId gets the id out of the url parameters of req, converts it to an int,
