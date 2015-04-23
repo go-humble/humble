@@ -77,11 +77,12 @@ func ReadAll(models interface{}) error {
 }
 
 // Update sends an http request to update the given model, i.e. to change some or all
-// of the fields. It sends a PUT request to model.RootURL() + "/" + model.GetId().
-// Update expects a JSON response containing the data for the updated model if the
-// request was successful, in which case it will mutate model by setting the fields
-// to the values in the JSON response. Since model may be mutated, it should be
-// a pointer.
+// of the fields. It uses reflection to convert the fields of model to url-encoded data.
+// Then it sends a PUT request to model.RootURL() with the encoded data in the body and
+// the Content-Type header set to application/x-www-form-urlencoded. Update expects a
+// JSON response containing the data for the updated model if the request was successful,
+// in which case it will mutate model by setting the fields to the values in the JSON
+// response. Since model may be mutated, it should be a pointer.
 func Update(model Model) error {
 	fullURL := model.RootURL() + "/" + model.GetId()
 	encodedModelData, err := encodeModelFields(model)
