@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,8 +23,11 @@ type Model interface {
 // the model to determine which url to send the POST request to.
 func Create(model Model) error {
 	fullURL := model.RootURL()
-	encodedString := encodeModelFields(model)
-	return sendRequestWithDataAndUnmarshal("POST", fullURL, encodedString, model)
+	encodedModelData, err := encodeModelFields(model)
+	if err != nil {
+		return err
+	}
+	return sendRequestWithDataAndUnmarshal("POST", fullURL, encodedModelData, model)
 }
 
 // Read will send a GET request to a RESTful server to get the model by the given id,
@@ -103,8 +107,11 @@ func getURLFromModels(models interface{}) (string, error) {
 // It will use the RootURL() method of the model to determine which url to send the PUT request to.
 func Update(model Model) error {
 	fullURL := model.RootURL() + "/" + model.GetId()
-	encodedString := encodeModelFields(model)
-	return sendRequestWithDataAndUnmarshal("PUT", fullURL, encodedString, model)
+	encodedModelData, err := encodeModelFields(model)
+	if err != nil {
+		return err
+	}
+	return sendRequestWithDataAndUnmarshal("PUT", fullURL, encodedModelData, model)
 }
 
 // Delete expects a pointer some concrete type which implements Model (e.g., *Todo).
@@ -178,21 +185,67 @@ func unmarshalResponse(res *http.Response, v interface{}) error {
 }
 
 // encodeModelFields returns the fields of model represented as a url-encoded string.
-// Suitable for POST requests with a content type of application/x-www-form-urlencoded
-func encodeModelFields(model Model) string {
-	// TODO: Do stronger type checking to prevent errors
-	encodedString := ""
-	modelValPtr := reflect.ValueOf(model)
-	modelVal := modelValPtr.Elem()
-	modelValType := modelVal.Type()
-	for i := 0; i < modelValType.NumField(); i++ {
-		field := modelVal.Field(i)
-		fieldName := modelValType.Field(i).Name
-		value := fmt.Sprint(field.Interface())
-		encodedString += fieldName + "=" + url.QueryEscape(value)
-		if i != modelValType.NumField()-1 {
-			encodedString += "&"
+// Suitable for POST requests with a content type of application/x-www-form-urlencoded.
+// It returns an error if model is a nil pointer or if it is not a struct or a pointer
+// to a struct. Any fields that are nil will not be added to the url-encoded string.
+func encodeModelFields(model Model) (string, error) {
+	modelVal := reflect.ValueOf(model)
+	// dereference the pointer until we reach the underlying struct value.
+	for modelVal.Kind() == reflect.Ptr {
+		if modelVal.IsNil() {
+			return "", errors.New("Error encoding model as url-encoded data: model was a nil pointer.")
 		}
+		modelVal = modelVal.Elem()
 	}
-	return encodedString
+	// Make sure the type of model after dereferencing is a struct.
+	if modelVal.Kind() != reflect.Struct {
+		return "", fmt.Errorf("Error encoding model as url-encoded data: model must be a struct or a pointer to a struct.")
+	}
+	encodedFields := []string{}
+	for i := 0; i < modelVal.Type().NumField(); i++ {
+		field := modelVal.Type().Field(i)
+		fieldValue := modelVal.FieldByName(field.Name)
+		encodedField, err := encodeField(field, fieldValue)
+		if err != nil {
+			if _, ok := err.(nilFieldError); ok {
+				// If there was a nil field, continue without adding the field
+				// to the encoded data.
+				continue
+			}
+			// We should return any other kind of error
+			return "", err
+		}
+		encodedFields = append(encodedFields, field.Name+"="+encodedField)
+	}
+	return strings.Join(encodedFields, "&"), nil
+}
+
+type nilFieldError struct{}
+
+func (nilFieldError) Error() string {
+	return "field was nil"
+}
+
+// encodeField converts a field with the given value to a string. It returns an error
+// if field has a type which is unsupported. It returns a special error (nilFieldError)
+// if a field has a value of nil. The supported types are int and its variants (int64,
+// int32, etc.), uint and its variants (uint64, uint32, etc.), bool, string, and []byte.
+func encodeField(field reflect.StructField, value reflect.Value) (string, error) {
+	for value.Kind() == reflect.Ptr {
+		if value.IsNil() {
+			// Skip nil fields
+			return "", nilFieldError{}
+		}
+		value = value.Elem()
+	}
+	switch v := value.Interface().(type) {
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, bool:
+		return fmt.Sprint(v), nil
+	case string:
+		return url.QueryEscape(v), nil
+	case []byte:
+		return url.QueryEscape(string(v)), nil
+	default:
+		return "", fmt.Errorf("Error encoding model as url-encoded data: Don't know how to convert %v of type %T to a string.", v, v)
+	}
 }
