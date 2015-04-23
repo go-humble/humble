@@ -104,6 +104,7 @@ func (todosControllerType) Create(w http.ResponseWriter, req *http.Request) {
 	val := todoData.Validator()
 	val.Require("Title")
 	val.Require("IsCompleted")
+	val.TypeBool("IsCompleted")
 	if val.HasErrors() {
 		r.JSON(w, statusUnprocessableEntity, val.ErrorMap())
 		return
@@ -122,18 +123,11 @@ func (todosControllerType) Create(w http.ResponseWriter, req *http.Request) {
 // and there are three of them, Show will only respond with a todo object for id
 // parameters between 0 and 2. Any other id will result in a 422 error.
 func (todosControllerType) Show(w http.ResponseWriter, req *http.Request) {
-	urlParams := mux.Vars(req)
-	idString := urlParams["id"]
-	id, err := strconv.Atoi(idString)
+	// Get the id from the url parameters
+	id, err := parseId(req)
 	if err != nil {
-		r.JSON(w, statusUnprocessableEntity, map[string]string{
-			"error": fmt.Sprintf(`Could not convert id paramater "%s" to int`, urlParams["id"]),
-		})
-		return
-	}
-	if id < 0 || id > 2 {
-		r.JSON(w, statusUnprocessableEntity, map[string]string{
-			"error": fmt.Sprintf(`Could not find todo with id = %d`, id),
+		r.JSON(w, statusUnprocessableEntity, map[string]error{
+			"error": err,
 		})
 		return
 	}
@@ -141,9 +135,54 @@ func (todosControllerType) Show(w http.ResponseWriter, req *http.Request) {
 }
 
 func (todosControllerType) Update(w http.ResponseWriter, req *http.Request) {
-	// TODO: rewrite this method in an idempotent way
+	// Get the id from the url parameters
+	id, err := parseId(req)
+	if err != nil {
+		r.JSON(w, statusUnprocessableEntity, map[string]error{
+			"error": err,
+		})
+		return
+	}
+	// Create a copy of the todo corresponding to id
+	todoCopy := todos[id]
+	// Parse data from the request
+	todoData, err := forms.Parse(req)
+	if err != nil {
+		panic(err)
+	}
+	// Validate and update the data only if it was provided in the request
+	if todoData.KeyExists("IsCompleted") {
+		val := todoData.Validator()
+		val.TypeBool("IsCompleted")
+		if val.HasErrors() {
+			r.JSON(w, statusUnprocessableEntity, val.ErrorMap())
+			return
+		}
+		// Update todoCopy with the given data
+		todoCopy.IsCompleted = todoData.GetBool("IsCompleted")
+	}
+	if todoData.KeyExists("Title") {
+		todoCopy.Title = todoData.Get("Title")
+	}
+	r.JSON(w, http.StatusOK, todoCopy)
 }
 
 func (todosControllerType) Delete(w http.ResponseWriter, req *http.Request) {
 	// TODO: rewrite this method in an idempotent way
+}
+
+// parseId gets the id out of the url parameters of req, converts it to an int,
+// and then checks that it is in the range of existing todos. It will return an
+// an error if there was problem converting the id parameter to an int or the
+// id was outside the range of existing todos.
+func parseId(req *http.Request) (int, error) {
+	idStr := mux.Vars(req)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return 0, fmt.Errorf(`Could not convert id paramater "%s" to int`, idStr)
+	}
+	if id < 0 || id > 2 {
+		return 0, fmt.Errorf(`Could not find todo with id = %d`, id)
+	}
+	return id, nil
 }

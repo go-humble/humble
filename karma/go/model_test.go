@@ -79,9 +79,27 @@ func main() {
 			}
 			err := model.Create(newTodo)
 			assert.Ok(err == nil, fmt.Sprintf("model.Create returned an error: %v", err))
-			assert.Equal(newTodo.IsCompleted, true, "newTodo.IsCompleted was incorrect.")
-			assert.Equal(newTodo.Title, "Test", "newTodo.Title was incorrect.")
 			assert.Equal(newTodo.Id, 3, "newTodo.Id was not set correctly.")
+			assert.Equal(newTodo.Title, "Test", "newTodo.Title was incorrect.")
+			assert.Equal(newTodo.IsCompleted, true, "newTodo.IsCompleted was incorrect.")
+			done.Invoke()
+		}()
+	})
+
+	qunit.Test("Update", func(assert qunit.QUnitAssert) {
+		qunit.Expect(4)
+		done := assert.Call("async")
+		go func() {
+			updatedTodo := &Todo{
+				Id:          1,
+				Title:       "Updated Title",
+				IsCompleted: true,
+			}
+			err := model.Update(updatedTodo)
+			assert.Ok(err == nil, fmt.Sprintf("model.Update returned an error: %v", err))
+			assert.Equal(updatedTodo.Id, 1, "updatedTodo.Id was incorrect.")
+			assert.Equal(updatedTodo.Title, "Updated Title", "updatedTodo.Title was incorrect.")
+			assert.Equal(updatedTodo.IsCompleted, true, "updatedTodo.IsCompleted was incorrect.")
 			done.Invoke()
 		}()
 	})
