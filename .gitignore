@@ -2,3 +2,4 @@
 *.js
 *.js.map
 karma/js
+test/server/tmp
