@@ -27,7 +27,7 @@ func Create(model Model) error {
 	if err != nil {
 		return err
 	}
-	return sendRequestWithDataAndUnmarshal("POST", fullURL, encodedModelData, model)
+	return sendRequestAndUnmarshal("POST", fullURL, encodedModelData, model)
 }
 
 // Read will send a GET request to a RESTful server to get the model by the given id,
@@ -37,7 +37,7 @@ func Create(model Model) error {
 // like "http://hostname.com/todos/123"
 func Read(id string, model Model) error {
 	fullURL := model.RootURL() + "/" + id
-	return sendRequestWithoutDataAndUnmarshal("GET", fullURL, model)
+	return sendRequestAndUnmarshal("GET", fullURL, "", model)
 }
 
 // ReadAll expects a pointer to a slice of poitners to some concrete type
@@ -51,7 +51,39 @@ func ReadAll(models interface{}) error {
 	if err != nil {
 		return err
 	}
-	return sendRequestWithoutDataAndUnmarshal("GET", rootURL, models)
+	return sendRequestAndUnmarshal("GET", rootURL, "", models)
+}
+
+// Update expects a pointer some concrete type which implements Model (e.g., *Todo), with a model.Id
+// that matches a stored object on the server. It will send a PUT request to the RESTful server.
+// It expects a JSON containing the updated object from the server if the request was successful,
+// and will set the fields of model with the data in the response object.
+// It will use the RootURL() method of the model to determine which url to send the PUT request to.
+func Update(model Model) error {
+	fullURL := model.RootURL() + "/" + model.GetId()
+	encodedModelData, err := encodeModelFields(model)
+	if err != nil {
+		return err
+	}
+	return sendRequestAndUnmarshal("PUT", fullURL, encodedModelData, model)
+}
+
+// Delete expects a pointer some concrete type which implements Model (e.g., *Todo).
+// It will send a DELETE request to a RESTful server. It expects an empty json
+// object from the server if the request was successful, and will not attempt to do anything
+// with the response. It will use the RootURL() and GetId() methods of the model to determine
+// which url to send the DELETE request to. Typically, the full url will look something
+// like "http://hostname.com/todos/123"
+func Delete(model Model) error {
+	fullURL := model.RootURL() + "/" + model.GetId()
+	req, err := http.NewRequest("DELETE", fullURL, nil)
+	if err != nil {
+		return fmt.Errorf("Something went wrong building DELETE request to %s: %s", fullURL, err.Error())
+	}
+	if _, err := http.DefaultClient.Do(req); err != nil {
+		return fmt.Errorf("Something went wrong with DELETE request to %s: %s", fullURL, err.Error())
+	}
+	return nil
 }
 
 // getURLFromModels returns the url that should be used for the type that corresponds
@@ -100,83 +132,30 @@ func getURLFromModels(models interface{}) (string, error) {
 	return newModel.RootURL(), nil
 }
 
-// Update expects a pointer some concrete type which implements Model (e.g., *Todo), with a model.Id
-// that matches a stored object on the server. It will send a PUT request to the RESTful server.
-// It expects a JSON containing the updated object from the server if the request was successful,
-// and will set the fields of model with the data in the response object.
-// It will use the RootURL() method of the model to determine which url to send the PUT request to.
-func Update(model Model) error {
-	fullURL := model.RootURL() + "/" + model.GetId()
-	encodedModelData, err := encodeModelFields(model)
-	if err != nil {
-		return err
-	}
-	return sendRequestWithDataAndUnmarshal("PUT", fullURL, encodedModelData, model)
-}
-
-// Delete expects a pointer some concrete type which implements Model (e.g., *Todo).
-// It will send a DELETE request to a RESTful server. It expects an empty json
-// object from the server if the request was successful, and will not attempt to do anything
-// with the response. It will use the RootURL() and GetId() methods of the model to determine
-// which url to send the DELETE request to. Typically, the full url will look something
-// like "http://hostname.com/todos/123"
-func Delete(model Model) error {
-	fullURL := model.RootURL() + "/" + model.GetId()
-	req, err := http.NewRequest("DELETE", fullURL, nil)
-	if err != nil {
-		return fmt.Errorf("Something went wrong building DELETE request to %s: %s", fullURL, err.Error())
-	}
-	if _, err := http.DefaultClient.Do(req); err != nil {
-		return fmt.Errorf("Something went wrong with DELETE request to %s: %s", fullURL, err.Error())
-	}
-	return nil
-}
-
-// sendRequestWithoutDataAndUnmarshal creates a request with the given method and url, sends
-// it using the default client, and then marshals the json response into v.
-func sendRequestWithoutDataAndUnmarshal(method string, url string, v interface{}) error {
-	req, err := http.NewRequest(method, url, nil)
+// sendRequestAndUnmarshal constructs a request with the given method, url, and
+// data. If data is an empty string, it will construct a request without any
+// data in the body. If data is a non-empty string, it will send it as the body
+// of the request and set the Content-Type header to
+// application/x-www-form-urlencoded. Then sendRequestAndUnmarshal sends the
+// request using http.DefaultClient and marshals the response into v using the json
+// package.
+// TODO: do something if the response status code is non-200.
+func sendRequestAndUnmarshal(method string, url string, data string, v interface{}) error {
+	// Build the request
+	req, err := http.NewRequest(method, url, strings.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("Something went wrong building %s request to %s: %s", method, url, err.Error())
 	}
-	return sendRequestAndUnmarshal(req, v)
-}
-
-// sendRequestWithDataAndUnmarshal creates a request with the given method, url, and data, sends
-// it using the default client, and then marshals the json response into v. It uses the Content-Type
-// header application/x-www-form-urlencoded.
-func sendRequestWithDataAndUnmarshal(method string, url string, data string, v interface{}) error {
-	req, err := buildRequestWithData(method, url, data)
-	if err != nil {
-		return err
+	// Set the Content-Type header only if data was provided
+	if data != "" {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
-	return sendRequestAndUnmarshal(req, v)
-}
-
-// buildRequestWithData creates and returns a request with the given method, url, and data. It
-// also sets the Content-Type header to application/x-www-form-urlencoded.
-func buildRequestWithData(method, url, data string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, strings.NewReader(data))
-	if err != nil {
-		return nil, fmt.Errorf("Something went wrong building %s request to %s: %s", method, url, err.Error())
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	return req, nil
-}
-
-// sendRequestAndUnmarshal sends req using http.DefaultClient and then marshals the response into v.
-// TODO: do something if the response status code is non-200.
-func sendRequestAndUnmarshal(req *http.Request, v interface{}) error {
+	// Send the request using the default client
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("Something went wrong with %s request to %s: %s", req.Method, req.URL.String(), err.Error())
 	}
-	return unmarshalResponse(res, v)
-}
-
-// unmarshalResponse reads the data from the body of res and then uses the json package to
-// unmarshal the data into v.
-func unmarshalResponse(res *http.Response, v interface{}) error {
+	// Unmarshal the response into v
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("Couldn't read response to %s: %s", res.Request.URL.String(), err.Error())
