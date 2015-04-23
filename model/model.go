@@ -15,34 +15,15 @@ type Model interface {
 	RootURL() string
 }
 
-// ReadAll expects a pointer to a slice of poitners to some concrete type
-// which implements Model (e.g., *[]*Todo). ReadAll will send a GET request to
-// a RESTful server and scan the results into models. It expects a json array
-// of json objects from the server, where each object represents a single Model
-// of some concrete type. It will use the RootURL() method of the models to
-// figure out which url to send the GET request to.
-func ReadAll(models interface{}) error {
-	rootURL := getURLFromModels(models)
-	return sendRequestWithoutDataAndUnmarshal("GET", rootURL, models)
-}
-
-// getURLFromModels returns the url that should be used for the type that corresponds
-// to models. It does this by instantiating a new model of the correct type and then
-// calling RootURL on it. models should be a pointer to a slice of models.
-func getURLFromModels(models interface{}) string {
-	// We expect some pointer to a slice of models. Like *[]Todo
-	// First Elem() givew us a slice of Model
-	// Second Elem() gives us Model
-	modelsType := reflect.TypeOf(models).Elem()
-	// TODO: type checking!
-	modelTypePtr := modelsType.Elem()
-	modelType := modelTypePtr.Elem()
-	// reflect.New returns a pointer to a Model
-	newModelVal := reflect.New(modelType)
-	newModelInterface := newModelVal.Interface()
-	newModel := newModelInterface.(Model)
-	// TODO: check for a failed type assertion!
-	return newModel.RootURL()
+// Create expects a pointer some concrete type which implements Model (e.g., *Todo).
+// It will send a POST request to the RESTful server. It expects a JSON containing the
+// created object from the server if the request was successful, and will set the fields of
+// model with the data in the response object. It will use the RootURL() method of
+// the model to determine which url to send the POST request to.
+func Create(model Model) error {
+	fullURL := model.RootURL()
+	encodedString := encodeModelFields(model)
+	return sendRequestWithDataAndUnmarshal("POST", fullURL, encodedString, model)
 }
 
 // Read will send a GET request to a RESTful server to get the model by the given id,
@@ -55,15 +36,64 @@ func Read(id string, model Model) error {
 	return sendRequestWithoutDataAndUnmarshal("GET", fullURL, model)
 }
 
-// Create expects a pointer some concrete type which implements Model (e.g., *Todo).
-// It will send a POST request to the RESTful server. It expects a JSON containing the
-// created object from the server if the request was successful, and will set the fields of
-// model with the data in the response object. It will use the RootURL() method of
-// the model to determine which url to send the POST request to.
-func Create(model Model) error {
-	fullURL := model.RootURL()
-	encodedString := encodeModelFields(model)
-	return sendRequestWithDataAndUnmarshal("POST", fullURL, encodedString, model)
+// ReadAll expects a pointer to a slice of poitners to some concrete type
+// which implements Model (e.g., *[]*Todo). ReadAll will send a GET request to
+// a RESTful server and scan the results into models. It expects a json array
+// of json objects from the server, where each object represents a single Model
+// of some concrete type. It will use the RootURL() method of the models to
+// figure out which url to send the GET request to.
+func ReadAll(models interface{}) error {
+	rootURL, err := getURLFromModels(models)
+	if err != nil {
+		return err
+	}
+	return sendRequestWithoutDataAndUnmarshal("GET", rootURL, models)
+}
+
+// getURLFromModels returns the url that should be used for the type that corresponds
+// to models. It does this by instantiating a new model of the correct type and then
+// calling RootURL on it. models should be a pointer to a slice of models.
+func getURLFromModels(models interface{}) (string, error) {
+	// Check the type of models
+	typ := reflect.TypeOf(models)
+	switch {
+	// Make sure its a pointer
+	case typ.Kind() != reflect.Ptr:
+		return "", fmt.Errorf("models must be a pointer to a slice of models. %T is not a pointer.", models)
+	// Make sure its a pointer to a slice
+	case typ.Elem().Kind() != reflect.Slice:
+		return "", fmt.Errorf("models must be a pointer to a slice of models. %T is not a pointer to a slice", models)
+	// Make sure the type of the elements of the slice implement Model
+	case !typ.Elem().Elem().Implements(reflect.TypeOf([]Model{}).Elem()):
+		return "", fmt.Errorf("models must be a pointer to a slice of models. The elem type %T does not implement model", typ.Elem().Elem())
+	}
+	// modelType is the type of the elements of models
+	modelType := typ.Elem().Elem()
+	// Ultimately, we need to be able to instantiate a new object of a type that
+	// implements Model so that we can call RootURL on it. The trouble is that
+	// reflect.New only works for things that are not pointers, and the type of
+	// the elements of models could be pointers. To solve for this, we are going
+	// to get the Elem of modelType if it is a pointer and keep track of the number
+	// of times we get the Elem. So if modelType is *Todo, we'll call Elem once to
+	// get the type Todo.
+	numDeref := 0
+	for modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+		numDeref += 1
+	}
+	// Now that we have the underlying type that is not a pointer, we can instantiate
+	// a new object with reflect.New.
+	newModelVal := reflect.New(modelType).Elem()
+	// Now we need to iteratively get the address of the object we created exactly
+	// numDeref times to get to a type that implements Model. Note that Addr is the
+	// inverse of Elem.
+	for i := 0; i < numDeref; i++ {
+		newModelVal = newModelVal.Addr()
+	}
+	// Now we can use a type assertion to convert the object we instantiated to a Model
+	newModel := newModelVal.Interface().(Model)
+	// Finally, once we have a Model we can get what we wanted by calling RootURL
+	return newModel.RootURL(), nil
 }
 
 // Update expects a pointer some concrete type which implements Model (e.g., *Todo), with a model.Id
@@ -151,7 +181,7 @@ func unmarshalResponse(res *http.Response, v interface{}) error {
 // Suitable for POST requests with a content type of application/x-www-form-urlencoded
 func encodeModelFields(model Model) string {
 	// TODO: Do stronger type checking to prevent errors
-	result := ""
+	encodedString := ""
 	modelValPtr := reflect.ValueOf(model)
 	modelVal := modelValPtr.Elem()
 	modelValType := modelVal.Type()
@@ -159,10 +189,10 @@ func encodeModelFields(model Model) string {
 		field := modelVal.Field(i)
 		fieldName := modelValType.Field(i).Name
 		value := fmt.Sprint(field.Interface())
-		result += fieldName + "=" + url.QueryEscape(value)
+		encodedString += fieldName + "=" + url.QueryEscape(value)
 		if i != modelValType.NumField()-1 {
-			result += "&"
+			encodedString += "&"
 		}
 	}
-	return result
+	return encodedString
 }
