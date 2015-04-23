@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"honnef.co/go/js/xhr"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -95,6 +94,9 @@ func Update(model Model) error {
 	fullURL := model.RootURL() + "/" + model.GetId()
 	encodedString := encodeModelFields(model)
 	req, err := http.NewRequest("PUT", fullURL, strings.NewReader(encodedString))
+	if err != nil {
+		return fmt.Errorf("Something went wrong building PUT request to %s. %s", fullURL, err.Error())
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -114,11 +116,11 @@ func Update(model Model) error {
 // like "http://hostname.com/todos/123"
 func Delete(model Model) error {
 	fullURL := model.RootURL() + "/" + model.GetId()
-	req := xhr.NewRequest("DELETE", fullURL)
-	req.Timeout = 1000 // one second, in milliseconds
-	req.ResponseType = "text"
-	err := req.Send(nil)
+	req, err := http.NewRequest("DELETE", fullURL, nil)
 	if err != nil {
+		return fmt.Errorf("Something went wrong building DELETE request to %s. %s", fullURL, err.Error())
+	}
+	if _, err := http.DefaultClient.Do(req); err != nil {
 		return fmt.Errorf("Something went wrong with DELETE request to %s. %s", fullURL, err.Error())
 	}
 	return nil
