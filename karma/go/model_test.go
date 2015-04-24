@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/albrow/qunit"
-	"github.com/soroushjp/humble/model"
+	"github.com/soroushjp/humble/rest"
 	"reflect"
 	"strconv"
 )
@@ -45,8 +45,8 @@ func main() {
 				},
 			}
 			gotTodos := []*Todo{}
-			err := model.ReadAll(&gotTodos)
-			assert.Ok(err == nil, fmt.Sprintf("model.ReadAll returned an error: %v", err))
+			err := rest.ReadAll(&gotTodos)
+			assert.Ok(err == nil, fmt.Sprintf("rest.ReadAll returned an error: %v", err))
 			assert.Ok(reflect.DeepEqual(gotTodos, expectedTodos), fmt.Sprintf("Expected: %v, Got: %v", expectedTodos, gotTodos))
 			done.Invoke()
 		}()
@@ -62,8 +62,8 @@ func main() {
 				IsCompleted: true,
 			}
 			gotTodo := &Todo{}
-			err := model.Read("2", gotTodo)
-			assert.Ok(err == nil, fmt.Sprintf("model.Read returned an error: %v", err))
+			err := rest.Read("2", gotTodo)
+			assert.Ok(err == nil, fmt.Sprintf("rest.Read returned an error: %v", err))
 			assert.Ok(reflect.DeepEqual(gotTodo, expectedTodo), fmt.Sprintf("Expected: %v, Got: %v", expectedTodo, gotTodo))
 			done.Invoke()
 		}()
@@ -77,8 +77,8 @@ func main() {
 				Title:       "Test",
 				IsCompleted: true,
 			}
-			err := model.Create(newTodo)
-			assert.Ok(err == nil, fmt.Sprintf("model.Create returned an error: %v", err))
+			err := rest.Create(newTodo)
+			assert.Ok(err == nil, fmt.Sprintf("rest.Create returned an error: %v", err))
 			assert.Equal(newTodo.Id, 3, "newTodo.Id was not set correctly.")
 			assert.Equal(newTodo.Title, "Test", "newTodo.Title was incorrect.")
 			assert.Equal(newTodo.IsCompleted, true, "newTodo.IsCompleted was incorrect.")
@@ -95,8 +95,8 @@ func main() {
 				Title:       "Updated Title",
 				IsCompleted: true,
 			}
-			err := model.Update(updatedTodo)
-			assert.Ok(err == nil, fmt.Sprintf("model.Update returned an error: %v", err))
+			err := rest.Update(updatedTodo)
+			assert.Ok(err == nil, fmt.Sprintf("rest.Update returned an error: %v", err))
 			assert.Equal(updatedTodo.Id, 1, "updatedTodo.Id was incorrect.")
 			assert.Equal(updatedTodo.Title, "Updated Title", "updatedTodo.Title was incorrect.")
 			assert.Equal(updatedTodo.IsCompleted, true, "updatedTodo.IsCompleted was incorrect.")
@@ -111,8 +111,8 @@ func main() {
 			deletedTodo := &Todo{
 				Id: 1,
 			}
-			err := model.Delete(deletedTodo)
-			assert.Ok(err == nil, fmt.Sprintf("model.Update returned an error: %v", err))
+			err := rest.Delete(deletedTodo)
+			assert.Ok(err == nil, fmt.Sprintf("rest.Update returned an error: %v", err))
 			done.Invoke()
 		}()
 	})

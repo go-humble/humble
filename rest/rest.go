@@ -1,4 +1,4 @@
-// package model contains functions for sending http requests to a REST API, which
+// package rest contains functions for sending http requests to a REST API, which
 // can be used to create, read, update, and delete models from a server.
 //
 // TODO: add a really detailed package doc comment describing:
@@ -6,7 +6,7 @@
 //   - The format in which models are encoded and what field types are supported
 //   - What responses from the server should look like
 //   - What happens if there is a non-200 response status code
-package model
+package rest
 
 import (
 	"encoding/json"
