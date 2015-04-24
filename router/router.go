@@ -5,7 +5,6 @@ import (
 	"honnef.co/go/js/console"
 	"regexp"
 	"strings"
-	"time"
 )
 
 // Router is responsible for handling routes
@@ -25,9 +24,9 @@ func New() *Router {
 }
 
 type route struct {
-	regex      *regexp.Regexp //Regex pattern that matches route
-	paramNames []string       //Ordered list of query parameters expected by route handler
-	handler    Handler        //Handler called when route is matched
+	regex      *regexp.Regexp // Regex pattern that matches route
+	paramNames []string       // Ordered list of query parameters expected by route handler
+	handler    Handler        // Handler called when route is matched
 }
 
 // HandleFunc will cause the router to call f whenever the
@@ -99,7 +98,7 @@ func (r *Router) hashChanged(hash string) {
 			}
 		}
 	}
-	//If no routes match, we throw console error and no handlers are called
+	// If no routes match, we throw console error and no handlers are called
 	if bestRoute == nil {
 		console.Error("Could not find route to match: " + path)
 		return
@@ -124,32 +123,11 @@ func removeEmptyStrings(a []string) []string {
 
 // watchHash watches DOM onhashchange and calls route.hashChanged
 func (r *Router) watchHash() {
-	if js.Global.Get("onhashchange") != js.Undefined {
-		js.Global.Set("onhashchange", func() {
-			go func() {
-				r.hashChanged(getHash())
-			}()
-		})
-	} else {
-		console.Warn("onhashchange is not supported. Humble is falling back to a legacy version.")
-		r.legacyWatchHash()
-	}
-}
-
-// legacyWatchHash sets a ticker to check for hash changes every 50ms in browsers where onhashchange is not supported
-func (r *Router) legacyWatchHash() {
-	t := time.NewTicker(50 * time.Millisecond)
-	go func() {
-		hash := getHash()
-		for {
-			<-t.C
-			newHash := getHash()
-			if hash != newHash {
-				hash = newHash
-				r.hashChanged(hash)
-			}
-		}
-	}()
+	js.Global.Set("onhashchange", func() {
+		go func() {
+			r.hashChanged(getHash())
+		}()
+	})
 }
 
 // getHash gets DOM window.location.hash
