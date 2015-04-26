@@ -122,7 +122,7 @@ func getURLFromModels(models interface{}) (string, error) {
 		return "", fmt.Errorf("models must be a pointer to a slice of models. %T is not a pointer to a slice", models)
 	// Make sure the type of the elements of the slice implement Model
 	case !typ.Elem().Elem().Implements(reflect.TypeOf([]Model{}).Elem()):
-		return "", fmt.Errorf("models must be a pointer to a slice of models. The elem type %T does not implement model", typ.Elem().Elem())
+		return "", fmt.Errorf("models must be a pointer to a slice of models. The elem type %s does not implement model", typ.Elem().Elem().String())
 	}
 	// modelType is the type of the elements of models
 	modelType := typ.Elem().Elem()
