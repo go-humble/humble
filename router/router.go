@@ -86,9 +86,10 @@ func (r *Router) Start() {
 // and update window.location accordingly. If the browser supports
 // history.pushState, that will be used. Otherwise, Navigate will
 // set the hash component of window.location to the given path.
-func Navigate(path string) {
+func (r *Router) Navigate(path string) {
 	if browserSupportsPushState {
 		pushState(path)
+		r.pathChanged(path)
 	} else {
 		setHash(path)
 	}
