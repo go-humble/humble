@@ -28,75 +28,92 @@ type route struct {
 func main() {
 	qunit.Test("Navigate", func(assert qunit.QUnitAssert) {
 		qunit.Expect(3)
-		r := router.New()
-		// For this test and other similar tests in this file, we're going to
-		// create a channel called routeChan. Any router.Handlers that we set
-		// up are just going to send a route object through the routeChan. That
-		// way, we can recieve from the routeChan to detect when certain routes
-		// were triggered. And by extension, we can check that the expected route
-		// is triggered within a certain amount of time.
-		routeChan := make(chan route)
-		r.HandleFunc("/foo", newChanHandlerFunc("/foo", routeChan))
-		r.Start()
-		defer r.Stop()
 		done := assert.Async()
-		go r.Navigate("/foo")
-		expectedRoute := route{
-			path:   "/foo",
-			params: map[string]string{},
-		}
-		go expectTriggeredRoute(assert, routeChan, "/foo", expectedRoute, done)
+
+		go func() {
+			// For this test and other similar tests in this file, we're going to
+			// create a channel called routeChan. Any router.Handlers that we set
+			// up are just going to send a route object through the routeChan. That
+			// way, we can recieve from the routeChan to detect when certain routes
+			// were triggered. And by extension, we can check that the expected route
+			// is triggered within a certain amount of time.
+			r := router.New()
+			routeChan := make(chan route)
+			r.HandleFunc("/foo", newChanHandlerFunc("/foo", routeChan))
+			r.Start()
+			defer r.Stop()
+
+			// Naviget to /foo and check that the appropriate route was triggered.
+			go r.Navigate("/foo")
+			expectedRoute := route{
+				path:   "/foo",
+				params: map[string]string{},
+			}
+			expectTriggeredRoute(assert, routeChan, "/foo", expectedRoute, done)
+		}()
 	})
 
 	qunit.Test("Navigate with Params", func(assert qunit.QUnitAssert) {
 		qunit.Expect(3)
-		r := router.New()
-		routeChan := make(chan route)
-		r.HandleFunc("/foo/{param1}/{param2}", newChanHandlerFunc("/foo/{param1}/{param2}", routeChan))
-		r.Start()
-		defer r.Stop()
 		done := assert.Async()
-		go r.Navigate("/foo/bar/baz")
-		expectedRoute := route{
-			path: "/foo/{param1}/{param2}",
-			params: map[string]string{
-				"param1": "bar",
-				"param2": "baz",
-			},
-		}
-		go expectTriggeredRoute(assert, routeChan, "/foo/bar/baz", expectedRoute, done)
+
+		go func() {
+			// Set up router
+			r := router.New()
+			routeChan := make(chan route)
+			r.HandleFunc("/foo/{param1}/{param2}", newChanHandlerFunc("/foo/{param1}/{param2}", routeChan))
+			r.Start()
+			defer r.Stop()
+
+			// Navigate to path with parameters bar and baz, then make sure the correct
+			// route was triggered and the params were passed through correctly.
+			go r.Navigate("/foo/bar/baz")
+			expectedRoute := route{
+				path: "/foo/{param1}/{param2}",
+				params: map[string]string{
+					"param1": "bar",
+					"param2": "baz",
+				},
+			}
+			expectTriggeredRoute(assert, routeChan, "/foo/bar/baz", expectedRoute, done)
+		}()
 	})
 
 	qunit.Test("Navigate Back", func(assert qunit.QUnitAssert) {
 		qunit.Expect(3)
-		r := router.New()
-		routeChan := make(chan route)
-		r.HandleFunc("/foo", newChanHandlerFunc("/foo", routeChan))
-		r.HandleFunc("/bar", newChanHandlerFunc("/bar", routeChan))
-		r.Start()
-		defer r.Stop()
 		done := assert.Async()
+
 		go func() {
+			// Set up router
+			r := router.New()
+			routeChan := make(chan route)
+			r.HandleFunc("/foo", newChanHandlerFunc("/foo", routeChan))
+			r.HandleFunc("/bar", newChanHandlerFunc("/bar", routeChan))
+			r.Start()
+			defer r.Stop()
+
 			// Navigate to "/foo"
-			r.Navigate("/foo")
+			go r.Navigate("/foo")
 			// Wait for the "/foo" handler to be triggered
 			// once before continuing.
 			<-routeChan
 			// Navigate to "/bar"
-			r.Navigate("/bar")
+			go r.Navigate("/bar")
 			// Wait for the "/bar" handler to be triggered
 			// once before continuing.
 			<-routeChan
 			// Navigate back to "/foo", which should trigger the onpopstate listener
 			// or the onhashchange listener, depending on browser support, and in turn
 			// trigger the corresponding router.Handler again.
-			r.Back()
+			go r.Back()
+
+			// Make sure the /foo route is triggered.
+			expectedRoute := route{
+				path:   "/foo",
+				params: map[string]string{},
+			}
+			expectTriggeredRoute(assert, routeChan, "/foo", expectedRoute, done)
 		}()
-		expectedRoute := route{
-			path:   "/foo",
-			params: map[string]string{},
-		}
-		go expectTriggeredRoute(assert, routeChan, "/foo", expectedRoute, done)
 	})
 
 	qunit.Test("Intercept Links", func(assert qunit.QUnitAssert) {

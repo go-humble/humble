@@ -123,7 +123,7 @@ func (r *Router) Navigate(path string) {
 // It has the same effect as the user pressing the back button,
 // and is just a wrapper around history.back()
 func (r *Router) Back() {
-	js.Global.Get("location").Call("back")
+	js.Global.Get("history").Call("back")
 }
 
 // InterceptLinks intercepts click events on links of the form <a href="/foo"></a>
