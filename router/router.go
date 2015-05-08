@@ -13,7 +13,7 @@ var browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
 	(js.Global.Get("history") != js.Undefined) &&
 	(js.Global.Get("history").Get("pushState") != js.Undefined)
 
-// Router is responsible for handling routes. If window.pushState is
+// Router is responsible for handling routes. If history.pushState is
 // supported, it uses that to navigate from page to page and will listen
 // to the "onpopstate" event. Otherwise, it sets the hash component of the
 // url and listens to changes via the "onhashchange" event.
@@ -39,7 +39,7 @@ type route struct {
 }
 
 // HandleFunc will cause the router to call f whenever window.location.pathname
-// (or window.location.hash, if window.pushState is not supported) matches path.
+// (or window.location.hash, if history.pushState is not supported) matches path.
 // path can contain any number of parameters which are denoted with curly brackets.
 // So, for example, a path argument of "users/{id}" will be triggered when the user
 // visits users/123 and will call the handler function with params["id"] = "123".
