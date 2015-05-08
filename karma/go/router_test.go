@@ -34,6 +34,7 @@ func main() {
 		routeChan := make(chan route)
 		r.HandleFunc("/foo", newChanHandlerFunc("/foo", routeChan))
 		r.Start()
+		defer r.Stop()
 		done := assert.Async()
 		go r.Navigate("/foo")
 		expectedRoute := route{
@@ -45,10 +46,11 @@ func main() {
 
 	qunit.Test("Navigate with Params", func(assert qunit.QUnitAssert) {
 		qunit.Expect(3)
-		routeChan := make(chan route)
 		r := router.New()
+		routeChan := make(chan route)
 		r.HandleFunc("/foo/{param1}/{param2}", newChanHandlerFunc("/foo/{param1}/{param2}", routeChan))
 		r.Start()
+		defer r.Stop()
 		done := assert.Async()
 		go r.Navigate("/foo/bar/baz")
 		expectedRoute := route{
@@ -63,11 +65,12 @@ func main() {
 
 	qunit.Test("Navigate Back", func(assert qunit.QUnitAssert) {
 		qunit.Expect(3)
-		routeChan := make(chan route)
 		r := router.New()
+		routeChan := make(chan route)
 		r.HandleFunc("/foo", newChanHandlerFunc("/foo", routeChan))
 		r.HandleFunc("/bar", newChanHandlerFunc("/bar", routeChan))
 		r.Start()
+		defer r.Stop()
 		done := assert.Async()
 		go func() {
 			// Navigate to "/foo"
@@ -83,7 +86,7 @@ func main() {
 			// Navigate back to "/foo", which should trigger the onpopstate listener
 			// or the onhashchange listener, depending on browser support, and in turn
 			// trigger the corresponding router.Handler again.
-			js.Global.Get("history").Call("back")
+			r.Back()
 		}()
 		expectedRoute := route{
 			path:   "/foo",

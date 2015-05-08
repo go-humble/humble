@@ -82,6 +82,16 @@ func (r *Router) Start() {
 	}
 }
 
+// Stop causes the router to stop listening for changes, and therefore
+// the router will not trigger any more router.Handler functions.
+func (r *Router) Stop() {
+	if browserSupportsPushState {
+		js.Global.Set("onpopstate", nil)
+	} else {
+		js.Global.Set("onhashchange", nil)
+	}
+}
+
 // Navigate will trigger the handler associated with the given path
 // and update window.location accordingly. If the browser supports
 // history.pushState, that will be used. Otherwise, Navigate will
@@ -93,6 +103,13 @@ func (r *Router) Navigate(path string) {
 	} else {
 		setHash(path)
 	}
+}
+
+// Back will cause the browser to go back to the previous page.
+// It has the same effect as the user pressing the back button,
+// and is just a wrapper around history.back()
+func (r *Router) Back() {
+	js.Global.Get("location").Call("back")
 }
 
 // setInitialHash will set hash to / if there is currently no hash.
