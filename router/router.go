@@ -3,15 +3,29 @@ package router
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"honnef.co/go/js/console"
+	"honnef.co/go/js/dom"
 	"regexp"
 	"strings"
 )
 
-// browserSupportsPushState will be true if the current browser
-// supports history.pushState and the onpopstate event.
-var browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
-	(js.Global.Get("history") != js.Undefined) &&
-	(js.Global.Get("history").Get("pushState") != js.Undefined)
+var (
+	// browserSupportsPushState will be true if the current browser
+	// supports history.pushState and the onpopstate event.
+	browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
+		(js.Global.Get("history") != js.Undefined) &&
+		(js.Global.Get("history").Get("pushState") != js.Undefined)
+	document dom.HTMLDocument
+)
+
+func init() {
+	if js.Global != nil {
+		var ok bool
+		document, ok = dom.GetWindow().Document().(dom.HTMLDocument)
+		if !ok {
+			panic("Could not convert document to dom.HTMLDocument")
+		}
+	}
+}
 
 // Router is responsible for handling routes. If history.pushState is
 // supported, it uses that to navigate from page to page and will listen
@@ -110,6 +124,34 @@ func (r *Router) Navigate(path string) {
 // and is just a wrapper around history.back()
 func (r *Router) Back() {
 	js.Global.Get("location").Call("back")
+}
+
+// InterceptLinks intercepts click events on links of the form <a href="/foo"></a>
+// and calls router.Navigate("/foo") instead, which triggers the appropriate Handler
+// instead of requesting a new page from the server.
+func (r *Router) InterceptLinks() {
+	for _, link := range document.Links() {
+		link.AddEventListener("click", true, func(event dom.Event) {
+			href := link.GetAttribute("href")
+			switch {
+			case href == "":
+				return
+			case strings.HasPrefix(href, "http://"), strings.HasPrefix(href, "https://"), strings.HasPrefix(href, "//"):
+				// These are external links and should behave normally.
+				return
+			case strings.HasPrefix(href, "#"):
+				// These are anchor links and should behave normally.
+				// Recall that even when we are using the hash trick, href
+				// attributes should be relative paths without the "#" and
+				// router will handle them appropriately.
+				return
+			case strings.HasPrefix(href, "/"):
+				// These are relative links. The kind that we want to intercept.
+				event.PreventDefault()
+				go r.Navigate(href)
+			}
+		})
+	}
 }
 
 // setInitialHash will set hash to / if there is currently no hash.

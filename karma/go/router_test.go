@@ -5,15 +5,19 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/rusco/qunit"
 	"github.com/soroushjp/humble/router"
+	"honnef.co/go/js/dom"
 	"strings"
 	"time"
 )
 
 // browserSupportsPushState will be true if the current browser
 // supports history.pushState and the onpopstate event.
-var browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
-	(js.Global.Get("history") != js.Undefined) &&
-	(js.Global.Get("history").Get("pushState") != js.Undefined)
+var (
+	browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
+		(js.Global.Get("history") != js.Undefined) &&
+		(js.Global.Get("history").Get("pushState") != js.Undefined)
+	document = dom.GetWindow().Document()
+)
 
 // route is an internal representation of a route that has been triggered.
 type route struct {
@@ -94,6 +98,32 @@ func main() {
 		}
 		go expectTriggeredRoute(assert, routeChan, "/foo", expectedRoute, done)
 	})
+
+	qunit.Test("Intercept Links", func(assert qunit.QUnitAssert) {
+		qunit.Expect(3)
+		done := assert.Async()
+
+		go func() {
+			// Set up and start the router
+			r := router.New()
+			routeChan := make(chan route)
+			r.HandleFunc("/biz", newChanHandlerFunc("/biz", routeChan))
+			r.Start()
+			defer r.Stop()
+
+			// Create a link element, call InterceptLinks, and then simulate clicking it
+			link := createLinkElement("/biz", "biz-link")
+			r.InterceptLinks()
+			link.Click()
+
+			// Make sure that we navigated to the /biz route
+			expectedRoute := route{
+				path:   "/biz",
+				params: map[string]string{},
+			}
+			expectTriggeredRoute(assert, routeChan, "/biz", expectedRoute, done)
+		}()
+	})
 }
 
 // newChanHandlerFunc will create and return a router.Handler which, when run,
@@ -142,4 +172,14 @@ func expectTriggeredRoute(assert qunit.QUnitAssert, routeChan chan route, expect
 		assert.Ok(true, "")
 		done()
 	}
+}
+
+// createLinkElement will add an <a> element to the DOM with an href property equal to path
+// and an id equal to id. It returns the created element.
+func createLinkElement(path string, id string) *dom.HTMLAnchorElement {
+	el := document.CreateElement("a")
+	el.SetAttribute("href", path)
+	el.SetID(id)
+	document.QuerySelector("body").AppendChild(el)
+	return el.(*dom.HTMLAnchorElement)
 }
