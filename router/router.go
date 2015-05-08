@@ -7,7 +7,16 @@ import (
 	"strings"
 )
 
-// Router is responsible for handling routes
+// browserSupportsPushState will be true if the current browser
+// supports history.pushState and the onpopstate event.
+var browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
+	(js.Global.Get("history") != js.Undefined) &&
+	(js.Global.Get("history").Get("pushState") != js.Undefined)
+
+// Router is responsible for handling routes. If window.pushState is
+// supported, it uses that to navigate from page to page and will listen
+// to the "onpopstate" event. Otherwise, it sets the hash component of the
+// url and listens to changes via the "onhashchange" event.
 type Router struct {
 	routes []*route
 }
@@ -29,8 +38,11 @@ type route struct {
 	handler    Handler        // Handler called when route is matched
 }
 
-// HandleFunc will cause the router to call f whenever the
-// hash of the url (everything after the '#' symbol) matches path.
+// HandleFunc will cause the router to call f whenever window.location.pathname
+// (or window.location.hash, if window.pushState is not supported) matches path.
+// path can contain any number of parameters which are denoted with curly brackets.
+// So, for example, a path argument of "users/{id}" will be triggered when the user
+// visits users/123 and will call the handler function with params["id"] = "123".
 func (r *Router) HandleFunc(path string, handler Handler) {
 	r.routes = append(r.routes, newRoute(path, handler))
 }
@@ -59,26 +71,43 @@ func newRoute(path string, handler Handler) *route {
 	return route
 }
 
-// Start will listen for changes in the hash of the url and
-// trigger the appropriate handler function.
+// Start causes the router to listen for changes to window.location and
+// trigger the appropriate handler whenever there is a change.
 func (r *Router) Start() {
-	r.setInitialHash()
-	r.watchHash()
-}
-
-// setInitialHash will set hash to / when none is given
-func (r *Router) setInitialHash() {
-	if hash := getHash(); hash == "" {
-		setHash("/")
+	if browserSupportsPushState {
+		r.watchHistory()
 	} else {
-		r.hashChanged(hash)
+		r.setInitialHash()
+		r.watchHash()
 	}
 }
 
-// hashChanged is called whenever DOM onhashchange event is fired
-func (r *Router) hashChanged(hash string) {
+// Navigate will trigger the handler associated with the given path
+// and update window.location accordingly. If the browser supports
+// history.pushState, that will be used. Otherwise, Navigate will
+// set the hash component of window.location to the given path.
+func Navigate(path string) {
+	if browserSupportsPushState {
+		pushState(path)
+	} else {
+		setHash(path)
+	}
+}
+
+// setInitialHash will set hash to / if there is currently no hash.
+// Then it will trigger the appropriate
+func (r *Router) setInitialHash() {
+	if getHash() == "" {
+		setHash("/")
+	} else {
+		r.pathChanged(getPathFromHash(getHash()))
+	}
+}
+
+// pathChanged should be called whenever the path changes and will trigger
+// the appropriate handler
+func (r *Router) pathChanged(path string) {
 	// path is everything after the '#'
-	path := strings.SplitN(hash, "#", 2)[1]
 	strs := strings.Split(path, "/")
 	strs = removeEmptyStrings(strs)
 	// Compare given path against regex patterns of routes. Preference given to routes with most literal (non-query) matches.
@@ -121,21 +150,48 @@ func removeEmptyStrings(a []string) []string {
 	return a
 }
 
-// watchHash watches DOM onhashchange and calls route.hashChanged
+// watchHash listens to the onhashchange event and calls r.pathChanged when
+// it changes
 func (r *Router) watchHash() {
 	js.Global.Set("onhashchange", func() {
 		go func() {
-			r.hashChanged(getHash())
+			path := getPathFromHash(getHash())
+			r.pathChanged(path)
 		}()
 	})
 }
 
-// getHash gets DOM window.location.hash
+// watchHistory listens to the onpopstate event and calls r.pathChanged when
+// it changes
+func (r *Router) watchHistory() {
+	js.Global.Set("onpopstate", func() {
+		go func() {
+			r.pathChanged(getPath())
+		}()
+	})
+}
+
+// getPathFromHash returns everything after the "#" character in hash.
+func getPathFromHash(hash string) string {
+	return strings.SplitN(hash, "#", 2)[1]
+}
+
+// getHash is an alias for js.Global.Get("location").Get("hash").String()
 func getHash() string {
 	return js.Global.Get("location").Get("hash").String()
 }
 
-// setHash sets DOM window.location.hash to given hash
+// setHash is an alias for js.Global.Get("location").Set("hash", hash)
 func setHash(hash string) {
 	js.Global.Get("location").Set("hash", hash)
+}
+
+// getPath is an alias for js.Global.Get("location").Get("pathname").String()
+func getPath() string {
+	return js.Global.Get("location").Get("pathname").String()
+}
+
+// pushState is an alias for js.Global.Get("history").Call("pushState", nil, "", path)
+func pushState(path string) {
+	js.Global.Get("history").Call("pushState", nil, "", path)
 }
