@@ -33,6 +33,14 @@ func init() {
 // url and listens to changes via the "onhashchange" event.
 type Router struct {
 	routes []*route
+	// ShouldInterceptLinks tells the router whether or not to intercept click events
+	// on links and call the Navigate method instead of the default behavior.
+	// If it is set to true, the router will automatically intercept links when
+	// Start, Navigate, or Back are called, or when the onpopstate event is triggered.
+	ShouldInterceptLinks bool
+	// listener is the js.Object representation of a listener callback.
+	// It is required in order to use the RemoveEventListener method
+	listener func(*js.Object)
 }
 
 // Handler is a function which is run in response to a specific
@@ -94,6 +102,9 @@ func (r *Router) Start() {
 		r.setInitialHash()
 		r.watchHash()
 	}
+	if r.ShouldInterceptLinks {
+		r.InterceptLinks()
+	}
 }
 
 // Stop causes the router to stop listening for changes, and therefore
@@ -117,6 +128,9 @@ func (r *Router) Navigate(path string) {
 	} else {
 		setHash(path)
 	}
+	if r.ShouldInterceptLinks {
+		r.InterceptLinks()
+	}
 }
 
 // Back will cause the browser to go back to the previous page.
@@ -124,6 +138,9 @@ func (r *Router) Navigate(path string) {
 // and is just a wrapper around history.back()
 func (r *Router) Back() {
 	js.Global.Get("history").Call("back")
+	if r.ShouldInterceptLinks {
+		r.InterceptLinks()
+	}
 }
 
 // InterceptLinks intercepts click events on links of the form <a href="/foo"></a>
@@ -146,13 +163,19 @@ func (r *Router) InterceptLinks() {
 			return
 		case strings.HasPrefix(href, "/"):
 			// These are relative links. The kind that we want to intercept.
-			link.AddEventListener("click", true, func(event dom.Event) {
-				event.PreventDefault()
-				go r.Navigate(href)
-			})
+			if r.listener != nil {
+				// Remove the old listener (if any)
+				link.RemoveEventListener("click", true, r.listener)
+			}
+			r.listener = link.AddEventListener("click", true, r.interceptLink)
 		}
-
 	}
+}
+
+func (r *Router) interceptLink(event dom.Event) {
+	event.PreventDefault()
+	href := event.CurrentTarget().GetAttribute("href")
+	go r.Navigate(href)
 }
 
 // setInitialHash will set hash to / if there is currently no hash.
@@ -228,6 +251,9 @@ func (r *Router) watchHistory() {
 	js.Global.Set("onpopstate", func() {
 		go func() {
 			r.pathChanged(getPath())
+			if r.ShouldInterceptLinks {
+				r.InterceptLinks()
+			}
 		}()
 	})
 }
