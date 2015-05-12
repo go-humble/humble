@@ -171,6 +171,9 @@ func sendRequestAndUnmarshal(method string, url string, data string, v interface
 	if data != "" {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
+	// Specify that we want json as the response type. This is especially useful
+	// for applications which share things between client and server
+	req.Header.Set("Accept", "application/json")
 	// Send the request using the default client
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
