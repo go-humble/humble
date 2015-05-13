@@ -241,14 +241,15 @@ func (r Router) findBestRoute(path string) (bestRoute *route, tokens []string) {
 	return bestRoute, tokens
 }
 
-// removeEmptyStrings removes any empty strings from a
-func removeEmptyStrings(a []string) []string {
-	for i, s := range a {
-		if s == "" {
-			a = append(a[:i], a[i+1:]...)
+// removeEmptyStrings removes any empty strings from strings
+func removeEmptyStrings(strings []string) []string {
+	result := []string{}
+	for _, s := range strings {
+		if s != "" {
+			result = append(result, s)
 		}
 	}
-	return a
+	return result
 }
 
 // watchHash listens to the onhashchange event and calls r.pathChanged when

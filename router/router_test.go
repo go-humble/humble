@@ -99,3 +99,37 @@ func generateTestHandler(path string, gotPath *string, gotParams *map[string]str
 		*gotParams = params
 	}
 }
+
+func TestRemoveEmptyStrings(t *testing.T) {
+	testCases := []struct {
+		input    []string
+		expected []string
+	}{
+		{
+			input:    []string{"a", "b", "c"},
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			input:    []string{"a", "b", ""},
+			expected: []string{"a", "b"},
+		},
+		{
+			input:    []string{"a", "", "c"},
+			expected: []string{"a", "c"},
+		},
+		{
+			input:    []string{"", "b", "c"},
+			expected: []string{"b", "c"},
+		},
+		{
+			input:    []string{"", "", ""},
+			expected: []string{},
+		},
+	}
+	for i, tc := range testCases {
+		got := removeEmptyStrings(tc.input)
+		if !reflect.DeepEqual(got, tc.expected) {
+			t.Errorf("removeEmptyStrings failed for test case %d\nExpected: %v\nBut got  %v", i, tc.expected, got)
+		}
+	}
+}
