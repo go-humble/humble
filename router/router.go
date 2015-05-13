@@ -2,8 +2,9 @@ package router
 
 import (
 	"github.com/gopherjs/gopherjs/js"
-	"honnef.co/go/js/console"
+	"github.com/soroushjp/humble/detect"
 	"honnef.co/go/js/dom"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -15,12 +16,8 @@ var (
 	document                 dom.HTMLDocument
 )
 
-func isClient() bool {
-	return js.Global != nil && js.Global.Get("document") != js.Undefined
-}
-
 func init() {
-	if isClient() {
+	if detect.IsClient() {
 		var ok bool
 		document, ok = dom.GetWindow().Document().(dom.HTMLDocument)
 		if !ok {
@@ -212,7 +209,7 @@ func (r *Router) pathChanged(path string) {
 	bestRoute, tokens := r.findBestRoute(path)
 	// If no routes match, we throw console error and no handlers are called
 	if bestRoute == nil {
-		console.Error("Could not find route to match: " + path)
+		log.Fatal("Could not find route to match: " + path)
 		return
 	}
 	// Make the params map and pass it to the handler
