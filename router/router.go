@@ -182,9 +182,13 @@ func (r *Router) InterceptLinks() {
 // the default behavior of event and instead calls r.Navigate, passing through
 // the link's href property.
 func (r *Router) interceptLink(event dom.Event) {
-	event.PreventDefault()
-	href := event.CurrentTarget().GetAttribute("href")
-	go r.Navigate(href)
+	path := event.CurrentTarget().GetAttribute("href")
+	// Only intercept the click event if we have a route which matches
+	// Otherwise, just do the default.
+	if bestRoute, _ := r.findBestRoute(path); bestRoute != nil {
+		event.PreventDefault()
+		go r.Navigate(path)
+	}
 }
 
 // setInitialHash will set hash to / if there is currently no hash.
@@ -200,26 +204,7 @@ func (r *Router) setInitialHash() {
 // pathChanged should be called whenever the path changes and will trigger
 // the appropriate handler
 func (r *Router) pathChanged(path string) {
-	// path is everything after the '#'
-	strs := strings.Split(path, "/")
-	strs = removeEmptyStrings(strs)
-	// Compare given path against regex patterns of routes. Preference given to routes with most literal (non-query) matches.
-	// Route 1: /todos/work
-	// Route 2: /todos/{category}
-	// Path /todos/work will match Route #1
-	leastParams := -1
-	var bestRoute *route
-	var bestMatches []string
-	for _, route := range r.routes {
-		matches := route.regex.FindStringSubmatch(path)
-		if matches != nil {
-			if (leastParams == -1) || (len(matches) < leastParams) {
-				leastParams = len(matches)
-				bestRoute = route
-				bestMatches = matches[1:]
-			}
-		}
-	}
+	bestRoute, tokens := r.findBestRoute(path)
 	// If no routes match, we throw console error and no handlers are called
 	if bestRoute == nil {
 		console.Error("Could not find route to match: " + path)
@@ -227,10 +212,31 @@ func (r *Router) pathChanged(path string) {
 	}
 	// Make the params map and pass it to the handler
 	params := map[string]string{}
-	for i, match := range bestMatches {
-		params[bestRoute.paramNames[i]] = match
+	for i, token := range tokens {
+		params[bestRoute.paramNames[i]] = token
 	}
 	bestRoute.handler(params)
+}
+
+// Compare given path against regex patterns of routes. Preference given to routes
+// with most literal (non-query) matches. For example if we have the following:
+//   Route 1: /todos/work
+//   Route 2: /todos/{category}
+// And the path argument is "/todos/work", the bestRoute would be todos/work
+// because the string "work" matches the literal in Route 1.
+func (r Router) findBestRoute(path string) (bestRoute *route, tokens []string) {
+	leastParams := -1
+	for _, route := range r.routes {
+		matches := route.regex.FindStringSubmatch(path)
+		if matches != nil {
+			if (leastParams == -1) || (len(matches) < leastParams) {
+				leastParams = len(matches)
+				bestRoute = route
+				tokens = matches[1:]
+			}
+		}
+	}
+	return bestRoute, tokens
 }
 
 // removeEmptyStrings removes any empty strings from a
