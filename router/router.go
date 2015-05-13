@@ -145,7 +145,13 @@ func (r *Router) Back() {
 
 // InterceptLinks intercepts click events on links of the form <a href="/foo"></a>
 // and calls router.Navigate("/foo") instead, which triggers the appropriate Handler
-// instead of requesting a new page from the server.
+// instead of requesting a new page from the server. Since InterceptLinks works by
+// setting event listeners in the DOM, you must call this function whenever the DOM
+// is changed. Alternatively, you can set r.ShouldInterceptLinks to true, which will
+// trigger this function whenever Start, Navigate, or Back are called, or when the
+// onpopstate event is triggered. Even with r.ShouldInterceptLinks set to true, you
+// may still need to call this function if you change the DOM manually without
+// triggering a route.
 func (r *Router) InterceptLinks() {
 	for _, link := range document.Links() {
 		href := link.GetAttribute("href")
@@ -172,6 +178,9 @@ func (r *Router) InterceptLinks() {
 	}
 }
 
+// interceptLink is intended to be used as a callback function. It stops
+// the default behavior of event and instead calls r.Navigate, passing through
+// the link's href property.
 func (r *Router) interceptLink(event dom.Event) {
 	event.PreventDefault()
 	href := event.CurrentTarget().GetAttribute("href")
