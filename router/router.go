@@ -11,19 +11,24 @@ import (
 var (
 	// browserSupportsPushState will be true if the current browser
 	// supports history.pushState and the onpopstate event.
-	browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
-		(js.Global.Get("history") != js.Undefined) &&
-		(js.Global.Get("history").Get("pushState") != js.Undefined)
-	document dom.HTMLDocument
+	browserSupportsPushState bool
+	document                 dom.HTMLDocument
 )
 
+func isClient() bool {
+	return js.Global != nil && js.Global.Get("document") != js.Undefined
+}
+
 func init() {
-	if js.Global != nil {
+	if isClient() {
 		var ok bool
 		document, ok = dom.GetWindow().Document().(dom.HTMLDocument)
 		if !ok {
 			panic("Could not convert document to dom.HTMLDocument")
 		}
+		browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
+			(js.Global.Get("history") != js.Undefined) &&
+			(js.Global.Get("history").Get("pushState") != js.Undefined)
 	}
 }
 
