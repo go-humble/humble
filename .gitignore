@@ -1,5 +1,0 @@
-**/*.DS_Store
-*.js
-*.js.map
-karma/js
-test/server/tmp
