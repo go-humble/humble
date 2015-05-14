@@ -2,14 +2,47 @@ package router
 
 import (
 	"github.com/gopherjs/gopherjs/js"
-	"honnef.co/go/js/console"
+	"github.com/soroushjp/humble/detect"
+	"honnef.co/go/js/dom"
+	"log"
 	"regexp"
 	"strings"
 )
 
-// Router is responsible for handling routes
+var (
+	// browserSupportsPushState will be true if the current browser
+	// supports history.pushState and the onpopstate event.
+	browserSupportsPushState bool
+	document                 dom.HTMLDocument
+)
+
+func init() {
+	if detect.IsClient() {
+		var ok bool
+		document, ok = dom.GetWindow().Document().(dom.HTMLDocument)
+		if !ok {
+			panic("Could not convert document to dom.HTMLDocument")
+		}
+		browserSupportsPushState = (js.Global.Get("onpopstate") != js.Undefined) &&
+			(js.Global.Get("history") != js.Undefined) &&
+			(js.Global.Get("history").Get("pushState") != js.Undefined)
+	}
+}
+
+// Router is responsible for handling routes. If history.pushState is
+// supported, it uses that to navigate from page to page and will listen
+// to the "onpopstate" event. Otherwise, it sets the hash component of the
+// url and listens to changes via the "onhashchange" event.
 type Router struct {
 	routes []*route
+	// ShouldInterceptLinks tells the router whether or not to intercept click events
+	// on links and call the Navigate method instead of the default behavior.
+	// If it is set to true, the router will automatically intercept links when
+	// Start, Navigate, or Back are called, or when the onpopstate event is triggered.
+	ShouldInterceptLinks bool
+	// listener is the js.Object representation of a listener callback.
+	// It is required in order to use the RemoveEventListener method
+	listener func(*js.Object)
 }
 
 // Handler is a function which is run in response to a specific
@@ -29,8 +62,11 @@ type route struct {
 	handler    Handler        // Handler called when route is matched
 }
 
-// HandleFunc will cause the router to call f whenever the
-// hash of the url (everything after the '#' symbol) matches path.
+// HandleFunc will cause the router to call f whenever window.location.pathname
+// (or window.location.hash, if history.pushState is not supported) matches path.
+// path can contain any number of parameters which are denoted with curly brackets.
+// So, for example, a path argument of "users/{id}" will be triggered when the user
+// visits users/123 and will call the handler function with params["id"] = "123".
 func (r *Router) HandleFunc(path string, handler Handler) {
 	r.routes = append(r.routes, newRoute(path, handler))
 }
@@ -59,83 +95,208 @@ func newRoute(path string, handler Handler) *route {
 	return route
 }
 
-// Start will listen for changes in the hash of the url and
-// trigger the appropriate handler function.
+// Start causes the router to listen for changes to window.location and
+// trigger the appropriate handler whenever there is a change.
 func (r *Router) Start() {
-	r.setInitialHash()
-	r.watchHash()
-}
-
-// setInitialHash will set hash to / when none is given
-func (r *Router) setInitialHash() {
-	if hash := getHash(); hash == "" {
-		setHash("/")
+	if browserSupportsPushState {
+		r.watchHistory()
 	} else {
-		r.hashChanged(hash)
+		r.setInitialHash()
+		r.watchHash()
+	}
+	if r.ShouldInterceptLinks {
+		r.InterceptLinks()
 	}
 }
 
-// hashChanged is called whenever DOM onhashchange event is fired
-func (r *Router) hashChanged(hash string) {
-	// path is everything after the '#'
-	path := strings.SplitN(hash, "#", 2)[1]
-	strs := strings.Split(path, "/")
-	strs = removeEmptyStrings(strs)
-	// Compare given path against regex patterns of routes. Preference given to routes with most literal (non-query) matches.
-	// Route 1: /todos/work
-	// Route 2: /todos/{category}
-	// Path /todos/work will match Route #1
+// Stop causes the router to stop listening for changes, and therefore
+// the router will not trigger any more router.Handler functions.
+func (r *Router) Stop() {
+	if browserSupportsPushState {
+		js.Global.Set("onpopstate", nil)
+	} else {
+		js.Global.Set("onhashchange", nil)
+	}
+}
+
+// Navigate will trigger the handler associated with the given path
+// and update window.location accordingly. If the browser supports
+// history.pushState, that will be used. Otherwise, Navigate will
+// set the hash component of window.location to the given path.
+func (r *Router) Navigate(path string) {
+	if browserSupportsPushState {
+		pushState(path)
+		r.pathChanged(path)
+	} else {
+		setHash(path)
+	}
+	if r.ShouldInterceptLinks {
+		r.InterceptLinks()
+	}
+}
+
+// Back will cause the browser to go back to the previous page.
+// It has the same effect as the user pressing the back button,
+// and is just a wrapper around history.back()
+func (r *Router) Back() {
+	js.Global.Get("history").Call("back")
+	if r.ShouldInterceptLinks {
+		r.InterceptLinks()
+	}
+}
+
+// InterceptLinks intercepts click events on links of the form <a href="/foo"></a>
+// and calls router.Navigate("/foo") instead, which triggers the appropriate Handler
+// instead of requesting a new page from the server. Since InterceptLinks works by
+// setting event listeners in the DOM, you must call this function whenever the DOM
+// is changed. Alternatively, you can set r.ShouldInterceptLinks to true, which will
+// trigger this function whenever Start, Navigate, or Back are called, or when the
+// onpopstate event is triggered. Even with r.ShouldInterceptLinks set to true, you
+// may still need to call this function if you change the DOM manually without
+// triggering a route.
+func (r *Router) InterceptLinks() {
+	for _, link := range document.Links() {
+		href := link.GetAttribute("href")
+		switch {
+		case href == "":
+			return
+		case strings.HasPrefix(href, "http://"), strings.HasPrefix(href, "https://"), strings.HasPrefix(href, "//"):
+			// These are external links and should behave normally.
+			return
+		case strings.HasPrefix(href, "#"):
+			// These are anchor links and should behave normally.
+			// Recall that even when we are using the hash trick, href
+			// attributes should be relative paths without the "#" and
+			// router will handle them appropriately.
+			return
+		case strings.HasPrefix(href, "/"):
+			// These are relative links. The kind that we want to intercept.
+			if r.listener != nil {
+				// Remove the old listener (if any)
+				link.RemoveEventListener("click", true, r.listener)
+			}
+			r.listener = link.AddEventListener("click", true, r.interceptLink)
+		}
+	}
+}
+
+// interceptLink is intended to be used as a callback function. It stops
+// the default behavior of event and instead calls r.Navigate, passing through
+// the link's href property.
+func (r *Router) interceptLink(event dom.Event) {
+	path := event.CurrentTarget().GetAttribute("href")
+	// Only intercept the click event if we have a route which matches
+	// Otherwise, just do the default.
+	if bestRoute, _ := r.findBestRoute(path); bestRoute != nil {
+		event.PreventDefault()
+		go r.Navigate(path)
+	}
+}
+
+// setInitialHash will set hash to / if there is currently no hash.
+// Then it will trigger the appropriate
+func (r *Router) setInitialHash() {
+	if getHash() == "" {
+		setHash("/")
+	} else {
+		r.pathChanged(getPathFromHash(getHash()))
+	}
+}
+
+// pathChanged should be called whenever the path changes and will trigger
+// the appropriate handler
+func (r *Router) pathChanged(path string) {
+	bestRoute, tokens := r.findBestRoute(path)
+	// If no routes match, we throw console error and no handlers are called
+	if bestRoute == nil {
+		log.Fatal("Could not find route to match: " + path)
+		return
+	}
+	// Make the params map and pass it to the handler
+	params := map[string]string{}
+	for i, token := range tokens {
+		params[bestRoute.paramNames[i]] = token
+	}
+	bestRoute.handler(params)
+}
+
+// Compare given path against regex patterns of routes. Preference given to routes
+// with most literal (non-query) matches. For example if we have the following:
+//   Route 1: /todos/work
+//   Route 2: /todos/{category}
+// And the path argument is "/todos/work", the bestRoute would be todos/work
+// because the string "work" matches the literal in Route 1.
+func (r Router) findBestRoute(path string) (bestRoute *route, tokens []string) {
 	leastParams := -1
-	var bestRoute *route
-	var bestMatches []string
 	for _, route := range r.routes {
 		matches := route.regex.FindStringSubmatch(path)
 		if matches != nil {
 			if (leastParams == -1) || (len(matches) < leastParams) {
 				leastParams = len(matches)
 				bestRoute = route
-				bestMatches = matches[1:]
+				tokens = matches[1:]
 			}
 		}
 	}
-	// If no routes match, we throw console error and no handlers are called
-	if bestRoute == nil {
-		console.Error("Could not find route to match: " + path)
-		return
-	}
-	// Make the params map and pass it to the handler
-	params := map[string]string{}
-	for i, match := range bestMatches {
-		params[bestRoute.paramNames[i]] = match
-	}
-	bestRoute.handler(params)
+	return bestRoute, tokens
 }
 
-// removeEmptyStrings removes any empty strings from a
-func removeEmptyStrings(a []string) []string {
-	for i, s := range a {
-		if s == "" {
-			a = append(a[:i], a[i+1:]...)
+// removeEmptyStrings removes any empty strings from strings
+func removeEmptyStrings(strings []string) []string {
+	result := []string{}
+	for _, s := range strings {
+		if s != "" {
+			result = append(result, s)
 		}
 	}
-	return a
+	return result
 }
 
-// watchHash watches DOM onhashchange and calls route.hashChanged
+// watchHash listens to the onhashchange event and calls r.pathChanged when
+// it changes
 func (r *Router) watchHash() {
 	js.Global.Set("onhashchange", func() {
 		go func() {
-			r.hashChanged(getHash())
+			path := getPathFromHash(getHash())
+			r.pathChanged(path)
 		}()
 	})
 }
 
-// getHash gets DOM window.location.hash
+// watchHistory listens to the onpopstate event and calls r.pathChanged when
+// it changes
+func (r *Router) watchHistory() {
+	js.Global.Set("onpopstate", func() {
+		go func() {
+			r.pathChanged(getPath())
+			if r.ShouldInterceptLinks {
+				r.InterceptLinks()
+			}
+		}()
+	})
+}
+
+// getPathFromHash returns everything after the "#" character in hash.
+func getPathFromHash(hash string) string {
+	return strings.SplitN(hash, "#", 2)[1]
+}
+
+// getHash is an alias for js.Global.Get("location").Get("hash").String()
 func getHash() string {
 	return js.Global.Get("location").Get("hash").String()
 }
 
-// setHash sets DOM window.location.hash to given hash
+// setHash is an alias for js.Global.Get("location").Set("hash", hash)
 func setHash(hash string) {
 	js.Global.Get("location").Set("hash", hash)
+}
+
+// getPath is an alias for js.Global.Get("location").Get("pathname").String()
+func getPath() string {
+	return js.Global.Get("location").Get("pathname").String()
+}
+
+// pushState is an alias for js.Global.Get("history").Call("pushState", nil, "", path)
+func pushState(path string) {
+	js.Global.Get("history").Call("pushState", nil, "", path)
 }
