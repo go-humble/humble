@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/albrow/qunit"
-	"github.com/soroushjp/humble/rest"
+	"github.com/go-humble/humble/rest"
 	"reflect"
 	"strconv"
 )

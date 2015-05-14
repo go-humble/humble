@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/albrow/qunit"
-	"github.com/soroushjp/humble/temple"
+	"github.com/go-humble/humble/temple"
 	"honnef.co/go/js/dom"
 )
 
