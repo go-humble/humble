@@ -122,7 +122,7 @@ func getURLFromModels(models interface{}) (string, error) {
 		return "", fmt.Errorf("models must be a pointer to a slice of models. %T is not a pointer to a slice", models)
 	// Make sure the type of the elements of the slice implement Model
 	case !typ.Elem().Elem().Implements(reflect.TypeOf([]Model{}).Elem()):
-		return "", fmt.Errorf("models must be a pointer to a slice of models. The elem type %T does not implement model", typ.Elem().Elem())
+		return "", fmt.Errorf("models must be a pointer to a slice of models. The elem type %s does not implement model", typ.Elem().Elem().String())
 	}
 	// modelType is the type of the elements of models
 	modelType := typ.Elem().Elem()
@@ -171,6 +171,9 @@ func sendRequestAndUnmarshal(method string, url string, data string, v interface
 	if data != "" {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
+	// Specify that we want json as the response type. This is especially useful
+	// for applications which share things between client and server
+	req.Header.Set("Accept", "application/json")
 	// Send the request using the default client
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
