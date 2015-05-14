@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-humble/humble/router"
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/rusco/qunit"
-	"github.com/soroushjp/humble/router"
 	"honnef.co/go/js/dom"
 	"strings"
 	"time"
