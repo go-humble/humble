@@ -10,7 +10,7 @@ type DefaultView struct {
 
 func (v *DefaultView) Element() dom.Element {
 	if v.el == nil {
-		v.SetElement(document.CreateElement("div"))
+		v.el = document.CreateElement("div")
 	}
 	return v.el
 }

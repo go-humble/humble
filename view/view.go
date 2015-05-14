@@ -12,7 +12,6 @@ var (
 type View interface {
 	Render() error
 	Element() dom.Element
-	SetElement(dom.Element)
 }
 
 func Append(parent View, child View) {
