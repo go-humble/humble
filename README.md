@@ -3,9 +3,70 @@ Humble
 
 Humble is a collection of loosely-coupled tools designed to build client-side
 and hybrid web applications using go and
-[gopherjs](https://github.com/gopherjs/gopherjs). This repository contains no
-code, but serves as an introduction to the Humble Toolkit and a central place
-for creating new issues that are not related to any specific sub-package.
+[gopherjs](https://github.com/gopherjs/gopherjs).
+
+Humble is designed for writing front-end code, and is entirely back-end
+agnostic. You can use Humble in combination with any back-end server written in
+any language. If you do choose to write your back-end in go as well, Humble
+offers some tools to make it easy to share code between the server and browser.
+
+This repository contains no code, but serves as an introduction to the Humble
+Toolkit and a central place for creating new issues that are not related to any
+specific sub-package.
+
+How it Works
+------------
+
+Humble allows you to write front-end code in pure go, which you can then
+compile to javascript with [gopherjs](https://github.com/gopherjs/gopherjs) and
+run in the browser. Humble is pure go. It feels like go, compiles with the
+standard go tools, and follows go idioms when possible.
+
+[GopherJS](https://github.com/gopherjs/gopherjs) supports all the main features
+of the go language, including goroutines and channels. Most of the standard
+library is also supported (see the
+[compatibility table](https://github.com/gopherjs/gopherjs/blob/master/doc/packages.md)).
+
+
+Why Write Client-Side Code in Go?
+---------------------------------
+
+Ultimately, Humble is not for everyone and may not be suitable for all projects.
+Many developers will be perfectly happy writing front-end code in javascript,
+and the javascript ecosystem is vast and thriving. It is not our goal to replace
+javascript or convince every developer to switch. However, we recognize that
+javascript is not everyone's favorite language, and Humble offers developers,
+especially those already familiar with go, a viable alternative.
+
+Go offers several benefits over javascript for writing client-side code:
+
+1. **Built-In Type-Safety**. Go is a type-safe, compiled language which means
+   that certain classes of mistakes can be caught before you even run your code.
+   It also makes it possible for text editors to do static analysis and more
+   intelligent autocomplete, increasing your productivity. While projects like
+   [TypeScript](http://www.typescriptlang.org/) exist, go offers type-safety as
+   a core feature, and *all* go code, whether part of the standard library or a
+   third-party package, supports it.
+2. **Robust Standard Library**. Go comes with an incredibly robust
+   [standard library](https://golang.org/pkg/), and almost all of it is
+   supported in gopherjs (see
+   the [compatibility table](https://github.com/gopherjs/gopherjs/blob/master/doc/packages.md)).
+3. **The Ability to Build Hybrid Applications**. If you already have a server
+   written in go, you can use Humble to write the front-end in go too. Having
+   your entire codebase in one language reduces cognitive load and increases
+   maintainability. It is even possible to share code between the server and
+   browser, just like you can with javascript and node.js.
+4. **Sane Concurrency Patterns**. Go is one of few modern languages to implement
+   [CSP concurrency patterns](https://en.wikipedia.org/wiki/Communicating_sequential_processes).
+   Goroutines and channels offer an intuitive and standardized way to deal with
+   concurrency and asynchronous code, and are fully supported in gopherjs.
+5. **Phenomenal Tooling**. Go offers some of the best tooling of any modern
+   language. There is standardized documentation on
+   [godoc.org](http://godoc.org/), builtin
+   [testing, benchmarking](http://golang.org/pkg/testing/), and
+   [profiling](http://blog.golang.org/profiling-go-programs), and even tools for
+   [detecting race conditions](http://blog.golang.org/race-detector) and
+   [displaying test coverage](https://blog.golang.org/cover).
 
 
 Development Status
@@ -21,14 +82,24 @@ using Humble for critical production applications.
 
 Humble uses semantic versioning, but offers no guarantees of backwards
 compatibility until version 1.0. It is likely that the API will change
-significantly as new issues are discovered and new features are added. Since
-the API will be rapidly changing, we recommend using a dependency tool such as
+significantly as new issues are discovered and new features are added. As such,
+we recommend using a dependency tool such as
 [godep](https://github.com/tools/godep) to ensure that your code does not break
 unexpectedly.
 
 
 Packages
 --------
+
+In contrast with front-end javascript frameworks such as Angular and Ember,
+Humble is much more conservative. It doesn't enforce any kind of structure on
+your applications, but tries to provide all the tools you need for the most
+common use cases. The packages that make up Humble are loosely-coupled, which
+means they work well together but can be used separately too. Humble can be
+used with [gopherjs bindings](https://github.com/gopherjs/gopherjs/wiki/bindings),
+such as [jQuery](https://github.com/gopherjs/jquery). It is even possible to
+use Humble together
+[with existing javascript code](https://github.com/gopherjs/gopherjs#interacting-with-the-dom).
 
 All packages are organized under the
 [Go-Humble Organization on GitHub](https://github.com/go-humble). They are
