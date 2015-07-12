@@ -10,9 +10,9 @@ agnostic. You can use Humble in combination with any back-end server written in
 any language. If you do choose to write your back-end in go as well, Humble
 offers some tools to make it easy to share code between the server and browser.
 
-This repository contains no code, but serves as an introduction to the Humble
-Toolkit and a central place for creating new issues that are not related to any
-specific sub-package.
+This repository contains no code, but serves as an introduction to Humble and a
+central place for creating new issues and feature requests that are not related
+to any specific sub-package.
 
 How it Works
 ------------
@@ -101,10 +101,6 @@ such as [jQuery](https://github.com/gopherjs/jquery). It is even possible to
 use Humble together
 [with existing javascript code](https://github.com/gopherjs/gopherjs#interacting-with-the-dom).
 
-All packages are organized under the
-[Go-Humble Organization on GitHub](https://github.com/go-humble). They are
-designed to be either used together or separately.
-
 ### [Detect](https://github.com/go-humble/detect)
 
 Detect is a tiny go package for detecting whether code is running on the server
@@ -112,8 +108,8 @@ or browser. It is intended to be used in hybrid go applications.
 
 ### [Examples](https://github.com/go-humble/examples)
 
-Examples contains several examples of how to use the Humble Toolkit to build
-real applications.
+Examples contains several examples of how to use Humble to build real
+applications.
 
 ### [Rest](https://github.com/go-humble/rest)
 
@@ -122,22 +118,22 @@ the response. Rest sends requests using CRUD semantics. It supports requests
 with a Content-Type of either application/x-www-form-urlencoded or
 application/json and parses json responses from the server.
 
-### [View](https://github.com/go-humble/view)
+### [Router](https://github.com/go-humble/router)
 
-View is a small package for organizing view-related code. View includes a View
-interface and some helper functions for operating on views (e.g. Append,
-Replace, Remove, etc.).
+Router is an easy-to-use router which runs in the browser. It supports url
+parameters and uses history.pushState, gracefully falling back to url hashes
+if needed.
 
 ### [Temple](https://github.com/go-humble/temple)
 
 Temple is a library and a command line tool for sanely managing go templates,
 with the ability to share them between the server and browser.
 
-### [Router](https://github.com/go-humble/router)
+### [View](https://github.com/go-humble/view)
 
-Router is an easy-to-use router which runs in the browser. It supports url
-parameters and uses history.pushState, gracefully falling back to url hashes
-if needed.
+View is a small package for organizing view-related code. View includes a View
+interface and some helper functions for operating on views (e.g. Append,
+Replace, Remove, etc.).
 
 
 Where is the Old Code?
@@ -145,4 +141,5 @@ Where is the Old Code?
 
 If you're looking for the files that used to be in this repository, they have
 all been moved to stand-alone packages. Check out the
-[Humble Toolkit](https://github.com/go-humble) on github to view all the packages!
+[Go-Humble Organization Page](https://github.com/go-humble) on github to view
+all the packages!
