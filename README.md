@@ -111,6 +111,12 @@ or browser. It is intended to be used in hybrid go applications.
 Examples contains several examples of how to use Humble to build real
 applications.
 
+### [Form](https://github.com/go-humble/form)
+
+Form is a package for validating and serializing html forms in the browser. It
+supports a variety of validations on form inputs and binding forms to arbitrary
+go structs.
+
 ### [Rest](https://github.com/go-humble/rest)
 
 Rest is a small package for sending requests to a RESTful API and unmarshaling
