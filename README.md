@@ -117,6 +117,12 @@ Form is a package for validating and serializing html forms in the browser. It
 supports a variety of validations on form inputs and binding forms to arbitrary
 go structs.
 
+### [Locstor](https://github.com/go-humble/locstor)
+
+Locstor provides localStorage bindings. In addition to being able to interact
+with the localStorage API directly, you can create a DataStore object for
+storing and retrieving arbitrary go data structures, not just strings.
+
 ### [Rest](https://github.com/go-humble/rest)
 
 Rest is a small package for sending requests to a RESTful API and unmarshaling
